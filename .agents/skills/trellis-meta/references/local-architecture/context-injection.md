@@ -39,6 +39,17 @@ Implement and check agents need task context. Trellis has two loading modes:
 
 In both modes, JSONL files in the task directory are the manifest for spec/research context. Task artifacts are read separately in this order: `prd.md` -> `design.md if present` -> `implement.md if present`.
 
+A new child uses complete, current role context delivered in its own prompt;
+the main session's earlier reading does not transfer. The injection marker
+means the hook ran, not that every file fit. Existing truncated/index-only
+notices identify files to read from disk; if the host saved a full hook output,
+read that before judging the visible excerpt. Missing/disallowed JSONL file or directory paths
+remain named, but a disallowed path must not be read by another route. A task
+block with a PRD but no curated spec context requires role-manifest inspection
+and relevant guideline discovery. Do not reread intact blocks. Without usable
+injection, load the role manifest, task artifacts, and specs. Refresh affected
+material after compaction, a new session, or a task/file change.
+
 ## JSONL Reading Rules
 
 `implement.jsonl` and `check.jsonl` contain one JSON object per line:

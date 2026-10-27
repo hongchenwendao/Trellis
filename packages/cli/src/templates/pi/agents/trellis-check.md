@@ -20,8 +20,8 @@ You are already the `trellis-check` sub-agent that the main session dispatched. 
 ## Core Responsibilities
 
 1. Inspect the current git diff.
-2. Read `prd.md`, `design.md` if present, and `implement.md` if present.
-3. Read and follow the spec and research files listed in the task's `check.jsonl`.
+2. Use complete current-task `prd.md`, `design.md` if present, and `implement.md` if present from the child prompt; read only missing, incomplete, or changed parts.
+3. Follow relevant injected spec/research context; recover needed truncated, index-only, missing, or changed files from `check.jsonl`.
 4. Review all changed code against the task artifacts and project specs.
 5. Look for omissions, design drift, and integration risk. Fix small issues within the assigned write scope; return substantial rework to the original executor.
 6. Reuse valid check results and rerun checks affected by fixes, including project-required final gates.

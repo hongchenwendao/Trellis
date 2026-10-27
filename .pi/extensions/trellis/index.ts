@@ -7,12 +7,14 @@ import {
 } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import {
+  basename,
   delimiter,
   dirname,
   isAbsolute,
   join,
   relative,
   resolve,
+  sep,
 } from "node:path";
 import { homedir } from "node:os";
 import { spawn, spawnSync } from "node:child_process";
@@ -26,6 +28,7 @@ interface PiToolResult {
   details?: unknown;
 }
 interface PiExtensionContext {
+  cwd?: string;
   hasUI?: boolean;
   model?: {
     provider?: string;
@@ -869,6 +872,29 @@ function binaryNotice(path: string, size: number, reason: string): string {
 function indexNotice(path: string, size: number, reason: string): string {
   return `[Trellis: not inlined (total context limit reached) — ${path} (${size} bytes): ${reason}]`;
 }
+function unavailableNotice(path: string, reason: string, rejected: boolean): string {
+  return rejected
+    ? `[Trellis: not inlined (disallowed path outside allowed roots) — ${path}: ${reason}; cannot auto-read or bypass path restrictions]`
+    : `[Trellis: not inlined (missing or inaccessible file) — ${path}: ${reason}; report if unavailable]`;
+}
+function directoryNotice(root: string, path: string, reason: string, budget: ContextBudget): string {
+  const full = join(root, path);
+  let detail: string;
+  if (!containInRoot(root, full)) {
+    detail = "not inlined (disallowed directory outside allowed roots; cannot auto-read or bypass path restrictions)";
+  } else {
+    try {
+      detail = statSync(full).isDirectory()
+        ? "not inlined (directory entry; inspect relevant Markdown files under allowed directory)"
+        : "not inlined (missing or inaccessible directory; report if unavailable)";
+    } catch {
+      detail = "not inlined (missing or inaccessible directory; report if unavailable)";
+    }
+  }
+  const notice = `[Trellis: ${detail} — ${path}: ${reason}]`;
+  budget.add(Buffer.byteLength(notice, "utf-8"));
+  return notice;
+}
 function budgetedBlock(
   budget: ContextBudget,
   header: string,
@@ -889,6 +915,7 @@ function budgetedBlock(
 }
 function readFileBytes(basePath: string, filePath: string): Buffer | null {
   const full = join(basePath, filePath);
+  if (!containInRoot(basePath, full)) return null;
   try {
     if (!statSync(full).isFile()) return null;
   } catch {
@@ -908,7 +935,15 @@ function materializeFile(
   budget: ContextBudget,
 ): string | null {
   const data = readFileBytes(basePath, filePath);
-  if (data === null) return null;
+  if (data === null) {
+    const notice = unavailableNotice(
+      filePath,
+      reason,
+      !containInRoot(basePath, join(basePath, filePath)),
+    );
+    budget.add(Buffer.byteLength(notice, "utf-8"));
+    return notice;
+  }
   const size = data.length;
   if (isBinaryContent(data)) {
     const notice = binaryNotice(filePath, size, reason);
@@ -971,11 +1006,33 @@ function readJsonlEntries(basePath: string, jsonlPath: string): JsonlEntry[] {
 function findRoot(start: string): string {
   let c = resolve(start);
   while (true) {
-    if (existsSync(join(c, ".trellis")) || existsSync(join(c, ".pi"))) return c;
+    // Only a directory with `.trellis/` is a Trellis project root. A bare
+    // `.pi` can be pi's global config (`~/.pi`) or an unrelated project, so
+    // accepting it here made root resolution stop too early (e.g. on `~`).
+    // Also reject a regular file named `.trellis` — the marker must be a
+    // directory.
+    const marker = join(c, ".trellis");
+    if (existsSync(marker) && statSync(marker).isDirectory()) return c;
     const p = dirname(c);
     if (p === c) return resolve(start);
     c = p;
   }
+}
+// Resolve the project root from the session working directory when available
+// (pi's ExtensionContext.cwd), falling back to the pi host process cwd.
+// process.cwd() is the host's launch directory and can differ from the
+// session cwd (pi-web / RPC / multi-project hosts), which made .pi/agents
+// lookups fail or resolve to the wrong project.
+function resolveRoot(ctx?: PiExtensionContext): string {
+  return findRoot(ctx?.cwd ?? process.cwd());
+}
+// Cache key scoping per-session state by both the session key and the
+// resolved project root. With dynamic root resolution a session can observe
+// different ctx.cwd values over its lifetime (pi-web / RPC / project
+// switching); keying caches by the session key alone would leak one
+// project's startup/task context into another.
+function cacheKey(k: string | null, ctx?: PiExtensionContext): string {
+  return `${k ?? "default"}::${resolveRoot(ctx)}`;
 }
 function splitFM(c: string) {
   const m = c.replace(/^\uFEFF/, "").match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
@@ -1055,22 +1112,48 @@ function contextKey(input?: unknown, ctx?: PiExtensionContext): string | null {
 }
 
 /**
- * Return `candidate` when it lands inside `root`, else null.
+ * Return `candidate` when it lands inside the repo or its real `.trellis` root.
  *
  * A session pointer is not always something the user typed. `task.py` now
  * refuses to store a ref that leaves the project, but a session file written
  * before that fix can still hold one, and `trellis update` does not rewrite
  * session files — so a poisoned pointer outlives the upgrade that closed the
- * writer. Both sides are resolved so a task directory symlinked outside is
- * refused too, but the original `candidate` is returned on success: callers do
+ * writer. The real `.trellis` root is also allowed when that directory is an
+ * intentional external symlink; any other symlink escape is refused. The
+ * original `candidate` is returned on success: callers do
  * `relative(root, dir)`, and handing them a realpath would break that whenever
  * `root` itself sits behind a symlink (`/tmp` does on macOS).
  */
+function insideRoot(base: string, target: string): boolean {
+  const rel = relative(base, target);
+  return rel === "" || (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel));
+}
+
 function containInRoot(root: string, candidate: string): string | null {
   try {
-    const rel = relative(realpathSync(root), realpathSync(candidate));
-    if (rel !== "" && (rel.startsWith("..") || isAbsolute(rel))) return null;
-    return candidate;
+    const rootReal = realpathSync(root);
+    const workflowReal = realpathSync(join(root, ".trellis"));
+    let targetReal: string;
+    try {
+      targetReal = realpathSync(candidate);
+    } catch {
+      // A missing leaf still needs a named notice. Resolve its existing
+      // parent so a symlinked directory cannot turn it into an outside path.
+      try {
+        targetReal = join(realpathSync(dirname(candidate)), basename(candidate));
+      } catch {
+        // Missing ancestors cannot be read. A lexical in-root path may be
+        // reported as missing; once it exists, realpath containment applies.
+        const lexical = resolve(candidate);
+        return insideRoot(resolve(root), lexical) ||
+          insideRoot(resolve(root, ".trellis"), lexical)
+          ? candidate
+          : null;
+      }
+    }
+    return insideRoot(rootReal, targetReal) || insideRoot(workflowReal, targetReal)
+      ? candidate
+      : null;
   } catch {
     return null;
   }
@@ -1194,8 +1277,17 @@ function buildContext(root: string, agent: string, key: string | null): string {
   const jsonlName = TRELLIS_AGENT_JSONL[agent] ?? "";
   const specBlocks: string[] = [];
   if (jsonlName) {
-    for (const entry of readJsonlEntries(dir, jsonlName)) {
-      if (entry.type === "directory") continue;
+    const entries = readJsonlEntries(dir, jsonlName);
+    if (entries.length === 0) {
+      specBlocks.push(
+        `[Trellis] ${relTaskDir}/${jsonlName} has no curated entries, so no spec/research context was injected. Read guidelines relevant to this task under .trellis/spec/.`,
+      );
+    }
+    for (const entry of entries) {
+      if (entry.type === "directory") {
+        specBlocks.push(directoryNotice(root, entry.file, entry.reason, budget));
+        continue;
+      }
       const block = materializeFile(root, entry.file, entry.reason, limits, budget);
       if (block) specBlocks.push(block);
     }
@@ -1761,7 +1853,9 @@ export default function trellisExtension(pi: {
   getThinkingLevel?: () => string;
 }): void {
   if (process.env.TRELLIS_SUBAGENT_CHILD === "1") return;
-  const root = findRoot(process.cwd());
+  // Process-level fallback; call sites with a session context re-resolve via
+  // resolveRoot(ctx) so the active project (session cwd) is used instead.
+  const root = resolveRoot();
   const procKey = `pi_process_${hash([root, process.pid, Date.now(), randomBytes(8).toString("hex")].join(":"))}`;
   let curKey: string | null = null;
 
@@ -1773,20 +1867,22 @@ export default function trellisExtension(pi: {
 
   // Per-turn cache to avoid double-spawning python
   let turnCache: {
-    key: string | null;
+    key: string;
     ts: number;
     wf: string;
     ov: string;
   } | null = null;
-  const getTurnCtx = (k: string | null) => {
+  const getTurnCtx = (k: string | null, ctx?: PiExtensionContext) => {
     const now = Date.now();
-    if (turnCache && turnCache.key === k && now - turnCache.ts < 1500)
+    const ck = cacheKey(k, ctx);
+    if (turnCache && turnCache.key === ck && now - turnCache.ts < 1500)
       return turnCache;
+    const r = resolveRoot(ctx);
     turnCache = {
-      key: k,
+      key: ck,
       ts: now,
-      wf: workflowBreadcrumb(root, k),
-      ov: sessionOverview(root, k),
+      wf: workflowBreadcrumb(r, k),
+      ov: sessionOverview(r, k),
     };
     return turnCache;
   };
@@ -1798,11 +1894,12 @@ export default function trellisExtension(pi: {
   const getStartupCtx = (
     k: string | null,
     turn: { ov: string },
+    ctx?: PiExtensionContext,
   ): string => {
-    const key = k ?? "default";
+    const key = cacheKey(k, ctx);
     let startup = startupCtxCache.get(key);
     if (startup === undefined) {
-      startup = buildStartupContext(root, k, turn.ov);
+      startup = buildStartupContext(resolveRoot(ctx), k, turn.ov);
       startupCtxCache.set(key, startup);
     }
     return startup;
@@ -1810,6 +1907,14 @@ export default function trellisExtension(pi: {
   const taskCtxSnapshot = new Map<string, string>();
   const lastSentTaskCtx = new Map<string, string>();
   const lastSentRuntimeCtx = new Map<string, string>();
+  // Session-level "most recently persisted" project root. The root-scoped
+  // lastSent* maps suppress re-emission for an unchanged root, but when a
+  // session switches projects (A -> B -> A) the latest persisted update
+  // would otherwise stay B's — and its <trellis-task-context-update>
+  // explicitly supersedes the system-prompt context. Re-assert the current
+  // root's task/runtime context on every root transition so the agent never
+  // keeps following the previous project's instructions.
+  const lastPersistedRoot = new Map<string, string>();
 
   // Toggle only the latest subagent native card; do not use Pi global tool expansion.
   const toggleDetail = (ctx: PiExtensionContext) => {
@@ -1877,6 +1982,7 @@ export default function trellisExtension(pi: {
       ctx?: PiExtensionContext,
     ) => {
       activeSubagentToolCallId = id;
+      const root = resolveRoot(ctx);
       const agentName = normalizeAgent(input.agent);
       if (!isTrellisAgent(root, agentName)) {
         return {
@@ -1894,7 +2000,7 @@ export default function trellisExtension(pi: {
                 "- Install a community subagent package: pi install -l npm:@tintinweb/pi-subagents",
             },
           ],
-          details: { agent: agentName, error: "not a trellis workflow agent" },
+          details: { agent: agentName, error: "not a moksha-trellis workflow agent" },
         };
       }
       const mode = input.mode ?? "single";
@@ -2028,10 +2134,11 @@ export default function trellisExtension(pi: {
   });
   pi.on?.("before_agent_start", (event, ctx) => {
     const k = getKey(event, ctx);
-    const key = k ?? "default";
+    const key = cacheKey(k, ctx);
     const cur = (event as { systemPrompt?: string }).systemPrompt ?? "";
-    const turn = getTurnCtx(k);
-    const startup = getStartupCtx(k, turn);
+    const root = resolveRoot(ctx);
+    const turn = getTurnCtx(k, ctx);
+    const startup = getStartupCtx(k, turn, ctx);
     // Task context is snapshotted into systemPrompt once; later on-disk
     // changes are delivered as persisted messages so the prefix stays stable.
     const freshTaskCtx = buildContext(root, "trellis-implement", k);
@@ -2043,11 +2150,23 @@ export default function trellisExtension(pi: {
     }
     const updates: string[] = [];
     const runtimeContext = [turn.wf, turn.ov].filter(Boolean).join("\n\n");
-    if (runtimeContext && runtimeContext !== lastSentRuntimeCtx.get(key)) {
+    // Re-assert the current root's context on project switches: when the
+    // session returns to an unchanged root, the root-scoped lastSent* maps
+    // alone would leave the previous project's persisted update as the most
+    // recent one in history.
+    const prevRoot = lastPersistedRoot.get(k ?? "default");
+    const switchedRoot = prevRoot !== undefined && prevRoot !== root;
+    if (
+      runtimeContext &&
+      (runtimeContext !== lastSentRuntimeCtx.get(key) || switchedRoot)
+    ) {
       lastSentRuntimeCtx.set(key, runtimeContext);
       updates.push(runtimeContext);
     }
-    if (freshTaskCtx !== lastSentTaskCtx.get(key)) {
+    if (
+      freshTaskCtx !== lastSentTaskCtx.get(key) ||
+      switchedRoot
+    ) {
       lastSentTaskCtx.set(key, freshTaskCtx);
       updates.push(
         "<trellis-task-context-update>\nTask context changed on disk. This supersedes the Trellis Task Context in the system prompt.\n\n" +
@@ -2055,6 +2174,7 @@ export default function trellisExtension(pi: {
           "\n</trellis-task-context-update>",
       );
     }
+    if (updates.length > 0) lastPersistedRoot.set(k ?? "default", root);
     const content = updates.join("\n\n");
     return {
       message: content

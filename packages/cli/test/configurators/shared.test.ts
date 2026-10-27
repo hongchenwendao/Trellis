@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
 import {
+  buildPullBasedPrelude,
   getPythonCommandForPlatform,
   replacePythonCommandLiterals,
   resolveAllAsSkillsNeutral,
@@ -41,6 +42,25 @@ const cursorCtx: TemplateContext = {
   hasHooks: false,
   cliFlag: "cursor",
 };
+
+describe("pull-based child context prelude", () => {
+  it("uses complete delivered context and recovers only gaps for the selected role", () => {
+    for (const role of ["implement", "check"] as const) {
+      const prelude = buildPullBasedPrelude(role);
+      expect(prelude).toContain("A new sub-agent does not inherit the main session's reads");
+      expect(prelude).toContain("use complete relevant task/spec content directly");
+      expect(prelude).toContain("The marker alone proves only that injection ran");
+      expect(prelude).toContain("Full hook output saved to: <path>");
+      expect(prelude).toContain("Read only relevant named truncated/index-only files");
+      expect(prelude).toContain("If task artifacts arrived but curated spec/research content did not");
+      expect(prelude).toContain("A PRD alone is not complete spec context");
+      expect(prelude).toContain("After compaction, a new session, or a task/file change");
+      expect(prelude).toContain(`If no usable current-task role context arrived, read \`<task-path>/${role}.jsonl\``);
+      expect(prelude).toContain("task.py current --source");
+      expect(prelude).not.toContain("This platform does NOT auto-inject task context");
+    }
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Tests

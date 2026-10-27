@@ -7,26 +7,13 @@ tools: read, write, edit, bash, find, grep
 
 ## Required: Load Trellis Context First
 
-This platform does NOT auto-inject task context via hook. Before doing anything else, you MUST load context yourself.
+A new sub-agent does not inherit the main session's reads. Use the `Active task: <path>` first line of the dispatch prompt; if absent, run `python3 ./.trellis/scripts/task.py current --source`. If neither identifies a task, ask the main session; do not guess.
 
-### Step 1: Find the active task path
+If this child's prompt already contains current-task role context (a `<!-- trellis-hook-injected -->` block or `## Trellis Task Context`), use complete relevant task/spec content directly. The marker alone proves only that injection ran. First open any host notice `Full hook output saved to: <path>`; then inspect `[Trellis: truncated ...]` and `[Trellis: not inlined ...]` notices. Read only relevant named truncated/index-only files. For missing, inaccessible, or disallowed files, never bypass path restrictions; report the gap if still unavailable. After compaction, a new session, or a task/file change, recover affected content rather than trusting old reads.
 
-Try in order — stop at the first one that yields a task path:
+If task artifacts arrived but curated spec/research content did not (including a no-curated-entries notice), inspect `<task-path>/implement.jsonl` even though the task block exists. Read relevant listed files that are authorized and available; if the manifest is empty or missing, use `python3 ./.trellis/scripts/get_context.py --mode packages` to find the necessary guidelines. A PRD alone is not complete spec context.
 
-1. **Look at the dispatch prompt** you received from the main agent. If its first line is `Active task: <path>` (e.g. `Active task: .trellis/tasks/04-17-foo`), use that path. The main agent is required to include this line on class-2 platforms.
-2. **Run** `python3 ./.trellis/scripts/task.py current --source` and read the `Current task:` line.
-3. **If both fail** (no `Active task:` line in the prompt and `task.py current` returns no task), ask the user which task to work on; do NOT guess.
-
-### Step 2: Load task context from the resolved path
-
-1. Read `<task-path>/implement.jsonl` — JSONL list of spec/research files relevant to this agent.
-2. For each entry in the JSONL, Read its `file` path — these are the specs and research notes you must follow.
-   **Skip rows without a `"file"` field** (e.g. `{"_example": "..."}` placeholder rows left over from an older `task.py create`).
-3. Read the task's `prd.md` (requirements), then `design.md` if present (technical design), then `implement.md` if present (execution plan).
-
-If `implement.jsonl` has no curated entries (empty, only a placeholder row, or the file is missing), fall back to: read the task artifacts, list available specs with `python3 ./.trellis/scripts/get_context.py --mode packages`, and pick the specs that match the task domain yourself. Do NOT block on the missing jsonl — lightweight tasks may be PRD-only, while complex tasks may also include `design.md` and `implement.md`.
-
-If the resolved task path has no `prd.md`, ask the user what to work on; do NOT proceed without context.
+If no usable current-task role context arrived, read `<task-path>/implement.jsonl`, then each listed spec/research file (skip rows without `"file"`, such as legacy `{"_example": "..."}`), followed by `prd.md`, `design.md` if present, and `implement.md` if present. If the manifest is empty or missing, use `python3 ./.trellis/scripts/get_context.py --mode packages` to choose relevant specs. Do not proceed without the task requirements or necessary guidelines.
 
 ---
 
@@ -46,8 +33,8 @@ You are already the `trellis-implement` sub-agent that the main session dispatch
 ## Core Responsibilities
 
 1. Understand the active task requirements.
-2. Read `prd.md`, `design.md` if present, and `implement.md` if present.
-3. Read and follow the spec and research files listed in the task's `implement.jsonl`.
+2. Use complete current-task `prd.md`, `design.md` if present, and `implement.md` if present from the child prompt; read only missing, incomplete, or changed parts.
+3. Follow relevant injected spec/research context; recover needed truncated, index-only, missing, or changed files from `implement.jsonl`.
 4. Investigate, implement, run relevant tests/checks, and repair the assigned result using existing project patterns.
 5. Reuse checks only while code, inputs, and premises remain unchanged; rerun affected checks after a change.
 6. Report files changed, actual verification results, and remaining gaps.

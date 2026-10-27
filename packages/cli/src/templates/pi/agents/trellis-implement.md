@@ -20,8 +20,8 @@ You are already the `trellis-implement` sub-agent that the main session dispatch
 ## Core Responsibilities
 
 1. Understand the active task requirements.
-2. Read `prd.md`, `design.md` if present, and `implement.md` if present.
-3. Read and follow the spec and research files listed in the task's `implement.jsonl`.
+2. Use complete current-task `prd.md`, `design.md` if present, and `implement.md` if present from the child prompt; read only missing, incomplete, or changed parts.
+3. Follow relevant injected spec/research context; recover needed truncated, index-only, missing, or changed files from `implement.jsonl`.
 4. Investigate, implement, run relevant tests/checks, and repair the assigned result using existing project patterns.
 5. Reuse checks only while code, inputs, and premises remain unchanged; rerun affected checks after a change.
 6. Report files changed, actual verification results, and remaining gaps.

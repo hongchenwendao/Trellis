@@ -11,9 +11,9 @@ git diff --name-only HEAD
 git status
 ```
 
-## Step 2: Read Task Artifacts and Applicable Specs
+## Step 2: Establish Task Artifacts and Applicable Specs
 
-Read the current task artifacts in order:
+Use complete, current task artifacts already available to this agent; read only missing, truncated, or changed parts in order:
 
 - `prd.md`
 - `design.md` if present
@@ -23,13 +23,13 @@ Read the current task artifacts in order:
 python3 ./.trellis/scripts/get_context.py --mode packages
 ```
 
-For each changed package/layer, read the spec index and follow its **Quality Check** section:
+For each changed package/layer, use the current spec index and its **Quality Check** section (read it if not already complete or if it changed):
 
 ```bash
 cat .trellis/spec/<package>/<layer>/index.md
 ```
 
-Read the specific guideline files referenced — the index is a pointer, not the goal.
+Use the specific relevant guideline files referenced; read gaps rather than treating the index or a hook marker as the full rule set. After compaction or a new session, recover affected requirements and guidelines.
 
 ## Step 3: Run Project Checks
 

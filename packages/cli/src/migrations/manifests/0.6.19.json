@@ -1,0 +1,9 @@
+{
+  "version": "0.6.19",
+  "description": "Reduce repeated context reads and shorten execution reminders",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- Agent guidance uses complete injected task and spec content directly, then reads only truncated, missing, or stale parts; new children still load their own context.\n- In-progress workflow reminders are shorter and retain routes to the detailed phase steps.\n**Bug Fixes:**\n- Missing or rejected context references now produce named notices alongside valid injected files. Pi's context reader applies realpath containment while allowing a legitimate external .trellis symlink.",
+  "migrations": [],
+  "notes": "Run moksha-trellis update to refresh managed workflow and agent guidance. No --migrate or --force step is required for pristine templates; locally edited files follow the normal conflict flow."
+}

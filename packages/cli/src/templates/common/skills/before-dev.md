@@ -1,13 +1,13 @@
-Read the relevant development guidelines before starting your task.
+Establish the relevant development guidelines before writing code. Use complete, current task/spec content already supplied to this agent; a hook marker alone does not prove completeness. Read only missing, truncated, index-only, or changed parts. After compaction or a new session, recover the affected information. These steps are coverage requirements, not an instruction to reread intact content.
 
 Execute these steps:
 
-1. **Read current task artifacts**:
+1. **Establish current task artifacts** (read only parts not already complete and current):
    - `prd.md` for requirements and acceptance criteria
    - `design.md` if present for technical design
    - `implement.md` if present for execution order and validation plan
 
-2. **Discover packages and their spec layers**:
+2. **Discover packages and their spec layers** if the affected package/spec map is not already current:
    ```bash
    python3 ./.trellis/scripts/get_context.py --mode packages
    ```
@@ -17,15 +17,15 @@ Execute these steps:
    - What type of work (backend, frontend, unit-test, docs, etc.)
    - Any spec/research paths referenced by the task artifacts
 
-4. **Read the spec index** for each relevant module:
+4. **Use the spec index** for each relevant module (read it if not already complete and current):
    ```bash
    cat .trellis/spec/<package>/<layer>/index.md
    ```
    Follow the **"Pre-Development Checklist"** section in the index.
 
-5. **Read the specific guideline files** listed in the Pre-Development Checklist that are relevant to your task. The index is NOT the goal — it points you to the actual guideline files (e.g., `error-handling.md`, `conventions.md`, `mock-strategies.md`). Read those files to understand the coding standards and patterns.
+5. **Use the specific guideline files** listed in the Pre-Development Checklist that are relevant to your task. The index is NOT the goal — it points to the actual guidelines (e.g., `error-handling.md`, `conventions.md`, `mock-strategies.md`). Read missing or incomplete guidelines; do not skip a required rule merely because its index was supplied.
 
-6. **Always read shared guides**:
+6. **Use relevant shared guides**, reading them if not already complete and current:
    ```bash
    cat .trellis/spec/guides/index.md
    ```

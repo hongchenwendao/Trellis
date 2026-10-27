@@ -18,19 +18,11 @@ You are already the `trellis-check` sub-agent that the main session dispatched. 
 
 ## Trellis Context Loading Protocol
 
-Look for the `<!-- trellis-hook-injected -->` marker in your input above.
+You are a new child: the main session's earlier reads are not yours. Confirm the current task from the dispatch prompt's first line `Active task: <path>`.
 
-- **If the marker is present**: task artifacts, spec, and research files have already been auto-loaded for you above. Proceed with the check work directly.
-- **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the active task path from your dispatch prompt's first line `Active task: <path>`, then Read `<task-path>/check.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
-
-## Context
-
-Before checking, read:
-- `.trellis/spec/` - Development guidelines
-- Task `prd.md` - Requirements document
-- Task `design.md` - Technical design (if exists)
-- Task `implement.md` - Execution plan (if exists)
-- Pre-commit checklist for quality standards
+- If `<!-- trellis-hook-injected -->` is present, use complete, relevant task/spec blocks already supplied. The marker proves only that the hook ran. If the host saved full output to a path, open it first. Inspect `[Trellis: truncated ...]`, `[Trellis: not inlined ...]`, missing-context, or host-output-truncation notices. Read relevant named truncated/index-only files; for missing, inaccessible, or disallowed files, do not bypass path restrictions and report any unresolved gap. If task artifacts arrived without curated spec context, inspect the role manifest and discover relevant guidelines. Do not reread intact blocks.
+- If the marker is absent or visible host output is unusable, load `<task-path>/check.jsonl`, its listed spec/research files, `prd.md`, `design.md` if present, and `implement.md` if present. If the manifest has no curated entries, discover applicable specs under `.trellis/spec/`. Do not guess another session's task.
+- After compaction, a new session, or a task/file change, recover affected content before relying on it. Keep the current task's requirements and relevant specs available.
 
 ## Core Responsibilities
 
@@ -58,7 +50,7 @@ git diff              # View specific changes
 
 ### Step 2: Check Against Specs and Task Artifacts
 
-Read the task's prd.md, design.md if present, and implement.md if present, then read relevant specs in `.trellis/spec/` to check code:
+Use complete current task artifacts and relevant specs already delivered; read only missing, incomplete, or changed parts before checking code:
 
 - Does it satisfy the task requirements
 - Does it follow the technical design and implementation plan when present

@@ -19,24 +19,16 @@ You are already the `trellis-implement` sub-agent that the main session dispatch
 
 ## Trellis Context Loading Protocol
 
-Look for the `<!-- trellis-hook-injected -->` marker in your input above.
+You are a new child: the main session's earlier reads are not yours. Confirm the current task from the dispatch prompt's first line `Active task: <path>`.
 
-- **If the marker is present**: prd / spec / research files have already been auto-loaded for you above. Proceed with the implementation work directly.
-- **If the marker is absent**: hook injection didn't fire (Windows + Claude Code, `--continue` resume, fork distribution, hooks disabled, etc.). Find the active task path from your dispatch prompt's first line `Active task: <path>`, then Read `<task-path>/implement.jsonl`, each listed file, `<task-path>/prd.md`, `<task-path>/design.md` if present, and `<task-path>/implement.md` if present before doing the work.
-
-## Context
-
-Before implementing, read:
-- `.trellis/workflow.md` - Project workflow
-- `.trellis/spec/` - Development guidelines
-- Task `prd.md` - Requirements document
-- Task `design.md` - Technical design (if exists)
-- Task `implement.md` - Execution plan (if exists)
+- If `<!-- trellis-hook-injected -->` is present, use complete, relevant task/spec blocks already supplied. The marker proves only that the hook ran. If the host saved full output to a path, open it first. Inspect `[Trellis: truncated ...]`, `[Trellis: not inlined ...]`, missing-context, or host-output-truncation notices. Read relevant named truncated/index-only files; for missing, inaccessible, or disallowed files, do not bypass path restrictions and report any unresolved gap. If task artifacts arrived without curated spec context, inspect the role manifest and discover relevant guidelines. Do not reread intact blocks.
+- If the marker is absent or visible host output is unusable, load `<task-path>/implement.jsonl`, its listed spec/research files, `prd.md`, `design.md` if present, and `implement.md` if present. If the manifest has no curated entries, discover applicable specs under `.trellis/spec/`. Do not guess another session's task.
+- After compaction, a new session, or a task/file change, recover affected content before relying on it. Keep the current task's requirements and relevant specs available.
 
 ## Core Responsibilities
 
-1. **Understand specs** - Read relevant spec files in `.trellis/spec/`
-2. **Understand task artifacts** - Read prd.md, design.md if present, and implement.md if present
+1. **Understand specs** - Use complete relevant injected specs; read only missing, incomplete, or changed guidelines
+2. **Understand task artifacts** - Use current complete artifacts; recover only missing, incomplete, or changed parts
 3. **Implement features** - Write code following specs and task artifacts
 4. **Verify and repair** - Run relevant tests, lint, and type-check for the assigned scope; fix failures and rerun affected checks
 5. **Report evidence** - State what changed, checks run and their results, and any remaining gap
@@ -55,14 +47,11 @@ Before implementing, read:
 
 ### 1. Understand Specs
 
-Read relevant specs based on task type:
-
-- Spec layers: `.trellis/spec/<package>/<layer>/`
-- Shared guides: `.trellis/spec/guides/`
+Use relevant specs already delivered. Discover/read missing or incomplete guidance under `.trellis/spec/<package>/<layer>/` and `.trellis/spec/guides/`.
 
 ### 2. Understand Requirements
 
-Read the task's prd.md, design.md if present, and implement.md if present:
+Use the current task's complete artifacts; read only needed gaps in `prd.md`, `design.md` if present, or `implement.md` if present:
 
 - What are the core requirements
 - Key points of technical design

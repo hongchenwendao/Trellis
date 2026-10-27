@@ -169,8 +169,8 @@ describe("trellis template constants", () => {
     }
     expect(breadcrumb(workflowMdTemplate, "no_task")).toContain("Answer consultation");
     expect(breadcrumb(workflowMdTemplate, "planning")).toContain("execution grant");
-    expect(breadcrumb(workflowMdTemplate, "in_progress")).toContain("alone is not permission");
-    expect(breadcrumb(workflowMdTemplate, "in_progress-inline")).toContain("alone is not permission");
+    expect(breadcrumb(workflowMdTemplate, "in_progress")).toContain("is not permission");
+    expect(breadcrumb(workflowMdTemplate, "in_progress-inline")).toContain("is not permission");
   });
 
   it("marketplace TDD workflow planning breadcrumbs include behavior gates", () => {
@@ -258,22 +258,37 @@ describe("trellis template constants", () => {
     // to a sub-agent that is already doing the requested work.
     const block = inProgressBreadcrumb();
     expect(block).toContain("Sub-agent self-exemption");
-    expect(block).toContain("already running as `trellis-implement` or `trellis-check`");
-    expect(block).toContain("do NOT dispatch another Trellis implement/check agent");
-    expect(block).toContain("main session only");
+    expect(block).toContain("already `trellis-implement` or `trellis-check`?");
+    expect(block).toContain("do NOT dispatch another Trellis agent");
+    expect(block).toContain("Main-session dispatch only");
   });
 
   it("chooses one execution owner and independent review by consequence, not a fixed relay", () => {
     const block = inProgressBreadcrumb();
-    expect(block).toContain("A small clear task can stay with one executor");
-    expect(block).toContain("public-interface change, substantial cross-module change, important risk, or explicit user/project requirement");
-    expect(block).toContain("not merely a file count");
-    expect(block).toContain("Count review as independent only after a different executor actually reviews and returns findings");
-    expect(block).toContain("If no reviewer ran, report review as pending or unavailable");
-    expect(block).toContain("Return substantial rework to the original executor");
-    expect(block).toContain("candidate code, inputs, and premises are unchanged");
-    expect(block).toContain("final integrated acceptance and project-required hooks/CI");
+    expect(block).toContain("one owner may implement, test, and repair");
+    expect(block).toContain("risk-triggered independent review");
+    expect(block).toContain("another executor's actual findings");
+    expect(stepSection("2.2")).toContain("public-interface change, substantial cross-module change, important risk, or explicit user/project requirement");
+    expect(stepSection("2.2")).toContain("return substantial rework to the execution owner");
+    expect(block).toContain("code, inputs, and premises are unchanged");
+    expect(block).toContain("accept the whole result and project-required gates");
     expect(block).not.toContain("`trellis-implement` -> `trellis-check`");
+  });
+
+  it("short execution breadcrumbs retain mandatory gates and a working detail route", () => {
+    for (const status of ["in_progress", "in_progress-inline"]) {
+      const block = workflowStateBreadcrumb(status);
+      for (const gate of ["Phase 2.1/2.2", "Phase 3.3", "Phase 3.4", "Phase 3.5"]) {
+        expect(block, `${status} must retain ${gate}`).toContain(gate);
+      }
+      expect(block).toContain("get_context.py --mode phase --step <X.X> --platform <host>");
+      expect(block).toContain("Codex reads its dispatch mode");
+      expect(block).toContain("`in_progress` is not permission");
+    }
+    expect(stepSection("2.1")).toContain("For delegated work:");
+    expect(stepSection("2.2")).toContain("Independent review is complete only when a different executor");
+    expect(stepSection("3.3")).toContain("trellis-update-spec");
+    expect(stepSection("3.4")).toContain("Run this step only when the user separately authorizes committing");
   });
 
   it("[issue-237] workflow.md Phase 2 dispatch steps require prompt recursion guards", () => {
@@ -341,8 +356,8 @@ describe("trellis template constants", () => {
     const inProgress = workflowStateBreadcrumb("in_progress");
     const inline = workflowStateBreadcrumb("in_progress-inline");
     for (const block of [inProgress, inline]) {
-      expect(block).toContain("archive/journal writes plus enabled auto-commits are authorized");
-      expect(block).toContain("no-code tasks need no work commit");
+      expect(block).toContain("archive/journal/auto-commits");
+      expect(block).toContain("need separate grants");
       expect(block).toContain("keep the task resumable");
     }
     expect(workflowMdTemplate).toContain("- 3.4 Commit changes `[conditional · once]`");
@@ -357,8 +372,8 @@ describe("trellis template constants", () => {
   it("requires a preferred material-plan adjustment, not an unranked option list", () => {
     for (const status of ["in_progress", "in_progress-inline"]) {
       const block = workflowStateBreadcrumb(status);
-      expect(block).toContain("one recommended adjustment with its decisive tradeoff");
-      expect(block).toContain("not just a list of options");
+      expect(block).toContain("report evidence and one recommended adjustment");
+      expect(block).toContain("Pause affected work");
     }
     expect(stepSection("2.3")).toContain(
       "one recommended adjustment with the decisive tradeoff instead of merely listing options",

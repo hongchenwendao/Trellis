@@ -6889,9 +6889,9 @@ print(len(entries))
     expect(match).toBeTruthy();
     const body = match?.[1] ?? "";
     expect(body).toContain(
-      "Commit task work only when needed and authorized (Phase 3.4).",
+      "Phase 3.4 commit, Phase 3.5",
     );
-    expect(body).toContain("alone is not permission");
+    expect(body).toContain("is not permission");
   });
 
   it("[issue-237] all implement/check agent templates contain recursion guards", () => {
@@ -7008,9 +7008,9 @@ print(len(entries))
     const inProgress = wf.match(/\[workflow-state:in_progress\]([\s\S]*?)\[\/workflow-state:in_progress\]/)?.[1] ?? "";
     expect(noTask).toContain("read-only analysis directly");
     expect(noTask).toContain("Creation alone does not confirm a plan or authorize implementation");
-    expect(inProgress).toContain("Continue through checks and local repair without renewed approval");
-    expect(inProgress).toContain("pause only the affected work");
-    expect(inProgress).toContain("Diagnose from new evidence, not a fixed retry count");
+    expect(inProgress).toContain("local fixes need no renewed approval");
+    expect(inProgress).toContain("Pause affected work");
+    expect(inProgress).toContain("diagnose from new evidence, not retry counts");
   });
 
   it("[#292] direct execution can start without both role manifests, while delegation needs curated context", () => {
@@ -7629,9 +7629,26 @@ print(len(entries))
     // The [Kilo, Antigravity, Devin] inline block content surfaces:
     // it tells the main session to load trellis-before-dev directly.
     expect(output).toContain("trellis-before-dev");
-    expect(output).toContain("Read `{TASK_DIR}/prd.md`");
+    expect(output).toContain("Use complete current `{TASK_DIR}/prd.md`");
+    expect(output).toContain("read only missing, incomplete, or changed parts");
     // The Codex sub-agent dispatch text must NOT surface in inline mode.
     expect(output).not.toMatch(/Active task: <task path>/);
+  });
+
+  it("[workflow-round-three] Codex inline Phase 2.2 excludes independent-agent dispatch detail", () => {
+    writeTrellisScripts();
+    writeProjectFile(path.join(".trellis", ".developer"), "name=test\n");
+    writeProjectFile(path.join(".trellis", "workflow.md"), templateWorkflowMd());
+    writeConfigYaml("codex:\n  dispatch_mode: inline\n");
+    const contextScript = path.join(tmpDir, ".trellis", "scripts", "get_context.py");
+    const output = execSync(
+      `${pythonCmd} ${JSON.stringify(contextScript)} --mode phase --step 2.2 --platform codex`,
+      { cwd: tmpDir, encoding: "utf-8" },
+    );
+    expect(output).toContain("Load the `trellis-check` skill");
+    expect(output).toContain("If the task warrants independent review but this host or explicit inline mode cannot provide it");
+    expect(output).not.toContain("spawn the check sub-agent");
+    expect(output).not.toContain("curate `check.jsonl`");
   });
 
   it("[issue-codex-dispatch-mode] resolve_breadcrumb_key picks status-inline only for codex+inline", () => {

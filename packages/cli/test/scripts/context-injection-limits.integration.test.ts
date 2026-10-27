@@ -190,6 +190,89 @@ print(mod.build_finish_prompt("FINISH THIS", "CURATED SPECS"))
       expect(finish).toContain("reuse still-valid lint/typecheck results");
     });
 
+    it("delivers complete content once and names a tail-truncated rule for targeted recovery", () => {
+      const taskDir = makeTask(tmp, "task-context-branch");
+      const rulePath = path.join(tmp, "rule.md");
+      const keyRule = "KEY RULE: never replace the public interface";
+      fs.writeFileSync(rulePath, `${"A".repeat(90)}\n${keyRule}\n`, "utf-8");
+      fs.writeFileSync(
+        path.join(taskDir, "implement.jsonl"),
+        `${JSON.stringify({ file: "rule.md", reason: "contract" })}\n`,
+      );
+      fs.writeFileSync(path.join(taskDir, "prd.md"), "# Requirement\nKeep API\n");
+      const relTask = path.relative(tmp, taskDir).split(path.sep).join("/");
+      const probe = `print(mod.build_implement_prompt("DO WORK", mod.get_implement_context(REPO_ROOT, ${JSON.stringify(relTask)})))`;
+
+      writeConfig(tmp, "context_injection:\n  max_file_bytes: 0\n");
+      const complete = runHookProbe(tmp, probe);
+      expect(complete).toContain(keyRule);
+      expect(complete).not.toContain("[Trellis: truncated");
+      expect(complete).toMatch(/Use\s+complete current-task blocks directly/);
+      expect(complete).toMatch(/do\s+not reread intact blocks/);
+
+      writeConfig(tmp, "context_injection:\n  max_file_bytes: 48\n");
+      const partial = runHookProbe(tmp, probe);
+      expect(partial).not.toContain(keyRule);
+      expect(partial).toContain(
+        "[Trellis: truncated at 48 bytes — read rule.md for the full content]",
+      );
+      expect(partial).toMatch(/Read relevant named truncated or\s+index-only files/);
+    });
+
+    it("keeps index-only and missing-manifest recovery visible in the delivered prompt", () => {
+      const taskDir = makeTask(tmp, "task-index-branch");
+      fs.writeFileSync(path.join(tmp, "large.md"), "B".repeat(200));
+      fs.writeFileSync(
+        path.join(taskDir, "implement.jsonl"),
+        `${JSON.stringify({ file: "large.md", reason: "important spec" })}\n`,
+      );
+      fs.writeFileSync(path.join(taskDir, "prd.md"), "# Requirement\n");
+      const relTask = path.relative(tmp, taskDir).split(path.sep).join("/");
+      const probe = `print(mod.build_implement_prompt("DO WORK", mod.get_implement_context(REPO_ROOT, ${JSON.stringify(relTask)})))`;
+      writeConfig(tmp, "context_injection:\n  max_file_bytes: 0\n  max_total_bytes: 80\n");
+      const indexOnly = runHookProbe(tmp, probe);
+      expect(indexOnly).toContain(
+        "[Trellis: not inlined (total context limit reached) — large.md",
+      );
+      expect(indexOnly).toMatch(/Read relevant named truncated or\s+index-only files/);
+
+      fs.unlinkSync(path.join(taskDir, "implement.jsonl"));
+      const missing = runHookProbe(tmp, probe);
+      expect(missing).toContain("implement.jsonl has no curated entries");
+      expect(missing).toContain("missing");
+    });
+
+    it("names a missing JSONL item beside valid context without reading a rejected outside path", () => {
+      const taskDir = makeTask(tmp, "task-partly-missing");
+      fs.writeFileSync(path.join(tmp, "valid.md"), "VALID CONTRACT\n");
+      const outsideName = `${path.basename(tmp)}-outside.md`;
+      const outsidePath = path.join(path.dirname(tmp), outsideName);
+      fs.writeFileSync(outsidePath, "SECRET OUTSIDE CONTENT\n");
+      fs.writeFileSync(
+        path.join(taskDir, "implement.jsonl"),
+        [
+          { file: "valid.md", reason: "valid contract" },
+          { file: "missing.md", reason: "required missing rule" },
+          { file: `../${outsideName}`, reason: "rejected reference" },
+        ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      );
+      fs.writeFileSync(path.join(taskDir, "prd.md"), "# Requirement\n");
+      const relTask = path.relative(tmp, taskDir).split(path.sep).join("/");
+      try {
+        const out = runHookProbe(
+          tmp,
+          `print(mod.build_implement_prompt("DO WORK", mod.get_implement_context(REPO_ROOT, ${JSON.stringify(relTask)})))`,
+        );
+        expect(out).toContain("=== valid.md ===\nVALID CONTRACT");
+        expect(out).toContain("not inlined (missing or inaccessible file) — missing.md: required missing rule");
+        expect(out).toContain(`not inlined (disallowed path outside allowed roots) — ../${outsideName}: rejected reference`);
+        expect(out).toContain("cannot auto-read or bypass path restrictions");
+        expect(out).not.toContain("SECRET OUTSIDE CONTENT");
+      } finally {
+        fs.rmSync(outsidePath, { force: true });
+      }
+    });
+
     describe("common/config.py: get_context_injection_limits", () => {
       it("returns built-in defaults when config.yaml has no context_injection section", () => {
         writeConfig(tmp, "session_auto_commit: true\n");
@@ -618,6 +701,36 @@ print("all-valid")
         expect(out).toContain(
           "[Trellis: truncated at 10 bytes — read refdir/b.md for the full content]",
         );
+      });
+
+      it("keeps valid file context beside missing and rejected directory entries", () => {
+        const taskDir = makeTask(tmp, "task-dir-gaps");
+        const outside = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-outside-dir-"));
+        try {
+          fs.writeFileSync(path.join(tmp, "valid.md"), "VALID RULE\n");
+          fs.writeFileSync(path.join(outside, "secret.md"), "SECRET OUTSIDE\n");
+          fs.writeFileSync(
+            path.join(taskDir, "implement.jsonl"),
+            [
+              { file: "valid.md", reason: "good file" },
+              { file: "missing-dir/", type: "directory", reason: "required missing directory" },
+              { file: `../${path.basename(outside)}/`, type: "directory", reason: "outside directory" },
+            ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+          );
+          fs.writeFileSync(path.join(taskDir, "prd.md"), "# Requirement\n");
+          const relTask = path.relative(tmp, taskDir).split(path.sep).join("/");
+          const out = runHookProbe(
+            tmp,
+            `print(mod.get_implement_context(REPO_ROOT, ${JSON.stringify(relTask)}))`,
+          );
+          expect(out).toContain("=== valid.md ===\nVALID RULE");
+          expect(out).toContain("missing or inaccessible directory; report if unavailable) — missing-dir/: required missing directory");
+          expect(out).toContain(`disallowed directory outside allowed roots; cannot auto-read or bypass path restrictions) — ../${path.basename(outside)}/: outside directory`);
+          expect(out).not.toContain("SECRET OUTSIDE");
+          expect(out).not.toContain("secret.md");
+        } finally {
+          fs.rmSync(outside, { recursive: true, force: true });
+        }
       });
 
       it("artifacts (prd/design/implement.md) obey max_artifact_bytes independently of max_file_bytes", () => {

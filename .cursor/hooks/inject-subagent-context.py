@@ -236,17 +236,7 @@ def _real_path_contained(base_real: str, target_real: str) -> bool:
 def _read_file_bytes(base_path: str, file_path: str) -> bytes | None:
     """Read raw file bytes, return None if file doesn't exist."""
     full_path = os.path.join(base_path, file_path)
-    try:
-        root_real = os.path.realpath(base_path)
-        # `.trellis` may itself be a symlink into a store outside the repo
-        # (#567); its real location is a second legitimate containment base.
-        workflow_real = os.path.realpath(os.path.join(base_path, ".trellis"))
-        full_real = os.path.realpath(full_path)
-        if not _real_path_contained(root_real, full_real) and not (
-            _real_path_contained(workflow_real, full_real)
-        ):
-            return None
-    except OSError:
+    if not _read_path_allowed(base_path, file_path):
         return None
     if os.path.exists(full_path) and os.path.isfile(full_path):
         try:
@@ -255,6 +245,21 @@ def _read_file_bytes(base_path: str, file_path: str) -> bytes | None:
         except Exception:
             return None
     return None
+
+
+def _read_path_allowed(base_path: str, file_path: str) -> bool:
+    """Preserve the repo or external .trellis realpath containment contract."""
+    try:
+        root_real = os.path.realpath(base_path)
+        # `.trellis` may itself be a symlink into a store outside the repo
+        # (#567); its real location is a second legitimate containment base.
+        workflow_real = os.path.realpath(os.path.join(base_path, ".trellis"))
+        full_real = os.path.realpath(os.path.join(base_path, file_path))
+        return _real_path_contained(root_real, full_real) or _real_path_contained(
+            workflow_real, full_real
+        )
+    except OSError:
+        return False
 
 
 def _truncate_notice(path: str, cap: int) -> str:
@@ -284,6 +289,24 @@ def _index_notice(path: str, size: int, reason: str) -> str:
         f"[Trellis: not inlined (total context limit reached) — "
         f"{path} ({size} bytes): {reason}]"
     )
+
+
+def _unavailable_notice(path: str, reason: str, *, rejected: bool) -> str:
+    if rejected:
+        return (
+            f"[Trellis: not inlined (disallowed path outside allowed roots) — "
+            f"{path}: {reason}; cannot auto-read or bypass path restrictions]"
+        )
+    return (
+        f"[Trellis: not inlined (missing or inaccessible file) — "
+        f"{path}: {reason}; report if unavailable]"
+    )
+
+
+def _directory_notice(path: str, reason: str, detail: str, budget: _Budget) -> str:
+    notice = f"[Trellis: {detail} — {path}: {reason}]"
+    budget.add(len(notice.encode("utf-8")))
+    return notice
 
 
 def _budgeted_block(
@@ -316,7 +339,11 @@ def _materialize_file(
     """Read a JSONL-referenced file, apply the per-file cap, then budget it."""
     data = _read_file_bytes(base_path, file_path)
     if data is None:
-        return None
+        notice = _unavailable_notice(
+            file_path, reason, rejected=not _read_path_allowed(base_path, file_path)
+        )
+        budget.add(len(notice.encode("utf-8")))
+        return notice
 
     size = len(data)
     if _is_binary_content(data):
@@ -344,8 +371,16 @@ def _materialize_directory(
     """Read all .md files in a directory, applying the same per-file and
     total caps as a single-file JSONL entry."""
     full_path = os.path.join(base_path, dir_path)
-    if not os.path.exists(full_path) or not os.path.isdir(full_path):
-        return []
+    if not _read_path_allowed(base_path, dir_path):
+        return [_directory_notice(
+            dir_path, reason,
+            "not inlined (disallowed directory outside allowed roots; cannot auto-read or bypass path restrictions)",
+            budget,
+        )]
+    if not os.path.isdir(full_path):
+        return [_directory_notice(
+            dir_path, reason, "not inlined (missing or inaccessible directory; report if unavailable)", budget
+        )]
 
     blocks: list[str] = []
     try:
@@ -359,8 +394,20 @@ def _materialize_directory(
             block = _materialize_file(base_path, relative_path, reason, limits, budget)
             if block:
                 blocks.append(block)
+        if not md_files:
+            blocks.append(_directory_notice(
+                dir_path, reason, "not inlined (directory has no readable Markdown files)", budget
+            ))
+        elif len(md_files) > max_files:
+            blocks.append(_directory_notice(
+                dir_path, reason,
+                f"partially inlined (first {max_files} Markdown files; inspect allowed directory if more are relevant)",
+                budget,
+            ))
     except Exception:
-        pass
+        blocks.append(_directory_notice(
+            dir_path, reason, "not inlined (inaccessible directory; report if unavailable)", budget
+        ))
 
     return blocks
 
@@ -626,11 +673,16 @@ def build_implement_prompt(original_prompt: str, context: str) -> str:
 
 You are the executor for this assigned deliverable.
 
-## Your Context
-
-All the information you need has been prepared for you:
+## Current Task Context
 
 {context}
+
+The hook marker proves injection ran, not that every file was complete. Use
+complete current-task blocks directly. Read relevant named truncated or
+index-only files; for missing, inaccessible, or disallowed files, do not
+bypass path restrictions—report the gap if they remain unavailable. Refresh
+changed task/spec content; do not reread intact blocks. This child does not
+inherit the parent's reads.
 
 ---
 
@@ -642,7 +694,7 @@ All the information you need has been prepared for you:
 
 ## Workflow
 
-1. **Understand** - Read the injected specs and task artifacts; investigate the assigned problem
+1. **Understand** - Use complete injected specs and artifacts; recover only needed gaps, then investigate
 2. **Implement** - Complete the assigned result within its confirmed contract
 3. **Verify and repair** - Run relevant tests, lint, and typecheck for your scope; fix failures and rerun affected checks
 4. **Hand off evidence** - Report the changed files, checks run and results, and remaining gaps
@@ -650,7 +702,7 @@ All the information you need has been prepared for you:
 ## Important Constraints
 
 - Do NOT execute git commit, only code modifications
-- Follow all dev specs injected above
+- Follow all relevant dev specs, including any incomplete ones recovered from disk
 - Reuse a check result only while candidate code, inputs, and premises remain unchanged
 - Do not leave ordinary failures for a separate check agent"""
 
@@ -662,11 +714,16 @@ def build_check_prompt(original_prompt: str, context: str) -> str:
 
 You are the independent reviewer assigned to this deliverable.
 
-## Your Context
-
-All check specs and dev specs you need:
+## Current Task Context
 
 {context}
+
+The hook marker proves injection ran, not that every file was complete. Use
+complete current-task blocks directly. Read relevant named truncated or
+index-only files; for missing, inaccessible, or disallowed files, do not
+bypass path restrictions—report the gap if they remain unavailable. Refresh
+changed task/spec content; do not reread intact blocks. This child does not
+inherit the parent's reads.
 
 ---
 
@@ -881,7 +938,13 @@ Active task: {task_dir}
 
 ## Curated Context
 
-{context}"""
+{context}
+
+The marker proves injection ran, not that every file was complete. Use intact
+current-task blocks directly; read only task-relevant truncated or index-only
+files. For missing, inaccessible, or disallowed files, do not bypass path
+restrictions—report the gap if still unavailable. Refresh changed task/spec
+content. This child does not inherit parent reads."""
 
 
 def _handle_codex_subagent_start(input_data: dict) -> None:

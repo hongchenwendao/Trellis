@@ -8,6 +8,7 @@ import {
   getHooksConfig,
 } from "../../src/templates/codex/index.js";
 import { resolveAllAsSkills } from "../../src/configurators/shared.js";
+import { collectPlatformTemplates } from "../../src/configurators/index.js";
 import { AI_TOOLS } from "../../src/types/ai-tools.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -176,6 +177,12 @@ describe("codex two-channel sub-agent context (native SubagentStart)", () => {
       expect(content).toMatch(/marker is absent/i);
       expect(content).toContain("<!-- trellis-hook-injected -->");
       expect(content).toContain("Active task: <path>");
+      if (name !== "trellis-research") {
+        expect(content).toContain("marker is present");
+        expect(content).toContain("not that all role context was complete");
+        expect(content).toContain("Read relevant named truncated/index-only files");
+        expect(content).toContain("does not inherit parent reads");
+      }
       expect(content).not.toContain("[features]");
       expect(content).not.toContain("multi_agent = false");
       expect(content).not.toContain("[features.multi_agent_v2]");
@@ -198,6 +205,19 @@ describe("codex two-channel sub-agent context (native SubagentStart)", () => {
       expect(content).toContain("<path>/prd.md");
       expect(content).toContain("<path>/design.md");
       expect(content).toContain("<path>/implement.md");
+    }
+  });
+
+  it("generated Codex roles use native-hook recovery without a duplicate pull prelude", () => {
+    const files = collectPlatformTemplates("codex");
+    for (const role of ["implement", "check"] as const) {
+      const profile = files?.get(`.codex/agents/trellis-${role}.toml`) ?? "";
+      expect(profile).not.toContain("Required: Load Trellis Context First");
+      expect(profile).toContain("Full hook output saved to: <path>");
+      expect(profile).toContain("it proves the hook ran");
+      expect(profile).toContain("not that all role context was complete");
+      expect(profile).toContain("If task artifacts arrived without curated specs");
+      expect(profile).toContain(`<path>/${role}.jsonl`);
     }
   });
 

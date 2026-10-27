@@ -80,7 +80,15 @@ These build the `Map<relPath, content>` that a `collect<Platform>Templates()` re
 
 `configurators/shared.ts:SubAgentType` — `"implement" | "check"`. `research` is intentionally excluded — research doesn't depend on an active task; it traverses the spec tree.
 
-`configurators/shared.ts:buildPullBasedPrelude` — returns the standard "Required: Load Trellis Context First" block. Used by class-2 platforms whose hook can't inject the sub-agent prompt (Gemini, Qoder, Codex, Copilot). The prelude tells the sub-agent to: (1) read `Active task: <path>` from the dispatch prompt; (2) fall back to `task.py current --source`; (3) ask the user. See `platform-integration.md` "Active task discovery on class-2 platforms (issue #225)" for why all three layers are needed.
+`configurators/shared.ts:buildPullBasedPrelude` — returns the standard "Required: Load Trellis Context First" block. It is used on pull-capable agent definitions, including Pi's extension-backed child. Codex now uses its native SubagentStart hook and a fallback written directly in each Codex agent profile, so `collectCodexTemplates` does not inject this prelude. The child resolves its own `Active task: <path>` (then `task.py current --source`, then asks if unresolved). If its current prompt already contains complete role-specific task/spec blocks, it uses them without rereading. A hook marker alone is not completeness: existing per-file truncation, total-budget index, missing-context, and host-output notices identify targeted recovery. An absent or unusable injection falls back to the role's JSONL, task artifacts, and relevant specs. New children do not inherit parent reads, and compaction/new sessions/file changes require refreshing affected content. See `platform-integration.md` "Active task discovery on class-2 platforms (issue #225)" for the task-path fallback.
+
+A Pi task block with PRD but no curated spec content is a separate recovery case:
+inspect the role manifest, then discover applicable guidelines when it is
+missing or empty. Shared Python and Pi payloads name missing JSONL file and
+directory entries beside valid blocks. Rejected outside-root references are identified as
+disallowed, not missing, and cannot be fetched through another route. Pi's
+read entrance accepts realpaths within the repo or the real `.trellis` root
+(including an intentionally external `.trellis` symlink), not other escapes.
 
 `configurators/shared.ts:detectSubAgentType` — returns `"implement"` / `"check"` / `null` from a filename like `trellis-implement.md`. Strips `.md`, `.toml`, `.prompt.md`. Returns `null` for `trellis-research` and unknown names — they skip the prelude.
 

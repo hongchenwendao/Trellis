@@ -204,3 +204,54 @@ Logs and pack inventories: `/private/tmp/trellis-npm-stable-verify/`,
 `/private/tmp/trellis-npm-stable-{build,targeted,typecheck,lint}.log`, and
 `/private/tmp/trellis-stable-smoke.PY0dUL/`. Stable publication and remote
 visibility remain for the main agent.
+
+## Patch 0.6.19 follow-up — local preparation (2026-10-27)
+
+The user authorized third-round implementation and subsequent GitHub/npm
+release. The main agent owns the commit, push, and live publication. It
+confirmed both published packages still pointed to `0.6.18` and version
+`0.6.19` was unoccupied before this preparation.
+
+- Bumped both packages to `0.6.19`; the CLI source dependency remains
+  `workspace:*`, while the final CLI tarball pins core exactly to `0.6.19`.
+  `release-preflight check-versions` and `npm-tag` report a matching pair and
+  `latest`. The lockfile required no dependency/version edit.
+- Added `src/migrations/manifests/0.6.19.json`: shorter execution reminders,
+  targeted recovery of missing/truncated context, named missing/rejected
+  file and directory notices, and Pi realpath containment. It has no
+  automatic deletion or migration; pristine managed templates update normally,
+  while local edits retain the standard conflict protection. The personal
+  release spec now shows `0.6.19` tarballs and `latest`. The README's untagged
+  stable install command was already correct and was left unchanged.
+- Final local artifacts are
+  `artifacts/npm/mokshaall-trellis-core-0.6.19.tgz` and
+  `artifacts/npm/mokshaall-trellis-0.6.19.tgz`; prior beta/stable tarballs
+  remain. Actual tarballs and `npm pack --dry-run --json` report 233 core and
+  645 CLI files. Both include README, LICENSE, COPYRIGHT, NOTICE and exclude
+  private task/workspace state, credentials, logs, and caches. The CLI has
+  only the `moksha-trellis` bin and includes the shortened workflow reminder,
+  Pi agent/extension, shared-hook directory notices, and `0.6.19` manifest.
+  Both `npm publish --dry-run` commands report public `latest` publication.
+- The third-round product owner reported a full CLI suite of 1606 passing
+  tests plus build, lint, TS typecheck, and Python checks before the last
+  directory-notice correction. After that correction, it reported 96 focused
+  passing tests and clean lint/typecheck/Python checks. This release task ran
+  `pnpm build` before the correction, 87 version/update/upgrade/manifest
+  tests, then packed the final CLI dist supplied by that owner; it did not
+  repeat the full suite. The main agent will run commit-time gates.
+- The final pair was installed only into
+  `/private/tmp/trellis-npm-0619-smoke.awKKmY/prefix-new`. Fresh five-platform
+  init, `platforms --json`, update and dry-run, `--version`, `--help`, and
+  `upgrade --dry-run` passed; upgrade plans
+  `npm install -g @mokshaall/trellis@latest`. A separate project initialized
+  with the actual `0.6.18` tarballs updated to `0.6.19`; a user-edited Pi
+  agent and user-owned workspace file survived, while pristine workflow and
+  shared hooks received the new content. The smoke registry response was
+  mocked because `0.6.19` is not yet published; its requests used the personal
+  `/latest` endpoint.
+
+Build/targeted logs: `/private/tmp/trellis-npm-0619-{build,targeted}.log`.
+Pack lists and publish dry-run logs:
+`/private/tmp/trellis-npm-0619-verify/`. Isolated install/smoke outputs:
+`/private/tmp/trellis-npm-0619-smoke.awKKmY/`. Live npm publication and
+registry verification remain for the main agent.

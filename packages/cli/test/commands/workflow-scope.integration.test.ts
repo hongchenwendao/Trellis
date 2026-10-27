@@ -137,13 +137,13 @@ describe("native workflow delivery and safe adoption", () => {
         replacePythonCommandLiterals(workflowMdTemplate),
       );
       expect(read(".trellis/workflow.md")).toContain(
-        "A small clear task can stay with one executor",
+        "one owner may implement, test, and repair",
       );
       expect(read(".trellis/workflow.md")).toContain(
         "Before dispatching a role, its manifest must contain at least one real",
       );
       expect(read(".trellis/workflow.md")).toContain(
-        "After a change, rerun affected checks",
+        "rerun affected checks",
       );
       for (const rule of policy) expect(read(entry)).toContain(rule);
       if (id === "dsh") {
@@ -169,7 +169,7 @@ describe("native workflow delivery and safe adoption", () => {
         replacePythonCommandLiterals(workflowMdTemplate),
       );
       expect(read(".trellis/workflow.md")).toContain(
-        "A small clear task can stay with one executor",
+        "one owner may implement, test, and repair",
       );
       expect(read(entry)).toBe(collected?.get(entry));
       for (const rule of policy) expect(read(entry)).toContain(rule);
@@ -222,7 +222,7 @@ describe("native workflow delivery and safe adoption", () => {
           "does not create or expand permission",
         );
         const executionStep = runPhase("--step", "2.1");
-        expect(executionStep).toContain("Load the `trellis-before-dev` skill");
+        expect(executionStep).toContain("Load `trellis-before-dev` to establish relevant project guidelines");
         expect(executionStep).not.toContain("Spawn the implement sub-agent");
       }
 

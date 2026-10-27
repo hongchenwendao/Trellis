@@ -234,13 +234,11 @@ Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-bef
 Sub-agent dispatch protocol applies to Claude Code, Cursor, Pi, and Codex sub-agent mode, including Codex native `SubagentStart` context injection with child-side pull fallback and `trellis-research`: every dispatch prompt starts with `Active task: <task path from task.py current>` before role-specific instructions.
 
 [workflow-state:in_progress]
-Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both a skill and an agent; use the agent for an independent review when the task calls for one.
-Classify this turn first: answer read-only requests directly. For execution, reconcile the confirmed plan, execution grant, latest instructions, and checkpoint; `in_progress` alone is not permission.
-Within authorized scope choose one execution owner for each deliverable. A small clear task can stay with one executor through investigation, implementation, tests, and repair; delegate independently deliverable work when useful. Require an independent reviewer for a public-interface change, substantial cross-module change, important risk, or explicit user/project requirement, not merely a file count. Count review as independent only after a different executor actually reviews and returns findings; a plan to dispatch, a self-check, or a role label is not evidence. If no reviewer ran, report review as pending or unavailable. Finish with whole-deliverable acceptance and `trellis-update-spec`; lint or a worker report alone is insufficient. Commit task work only when needed and authorized (Phase 3.4). Use `/trellis:finish-work` when no task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; no-code tasks need no work commit. Otherwise deliver the verified result and keep the task resumable. Continue through checks and local repair without renewed approval.
-Sub-agent self-exemption: if already running as `trellis-implement` or `trellis-check`, do NOT dispatch another Trellis implement/check agent. Dispatch is main session only. Return substantial rework to the original executor; a reviewer may fix small assigned issues.
-Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
-Reuse checks while candidate code, inputs, and premises are unchanged. After a change rerun affected checks; retain final integrated acceptance and project-required hooks/CI.
-Resolve local technical issues within the agreed contract. If a key premise fails or wider authority is needed, pause only the affected work; report evidence, impact, attempts, and one recommended adjustment with its decisive tradeoff, not just a list of options. Continue independent work. Diagnose from new evidence, not a fixed retry count.
+Answer read-only turns directly. `in_progress` is not permission: reconcile confirmed plan, execution grant, scope, latest instructions, and checkpoint.
+Phase 2.1/2.2: one owner may implement, test, and repair; delegate independent deliverables. Apply Phase 2.2 risk-triggered independent review, counting it only with another executor's actual findings; return substantial rework to the owner. Reuse checks only while code, inputs, and premises are unchanged; rerun affected checks and accept the whole result and project-required gates.
+Sub-agent self-exemption: already `trellis-implement` or `trellis-check`? Do assigned work; do NOT dispatch another Trellis agent. Main-session dispatch only: prompt begins `Active task: <task path from task.py current>`; each child loads its own role context.
+Within scope, local fixes need no renewed approval. Failed key premise or wider authority? Pause affected work, report evidence and one recommended adjustment; diagnose from new evidence, not retry counts.
+Phase 3.3 spec review; Phase 3.4 commit, Phase 3.5 `/trellis:finish-work` (archive/journal/auto-commits), push, and publish need separate grants. Otherwise deliver and keep the task resumable. Detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.X> --platform <host>`; use `claude`, `cursor`, `codex`, `pi`, or `dsh` (Codex reads its dispatch mode).
 [/workflow-state:in_progress]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when
@@ -249,11 +247,10 @@ Resolve local technical issues within the agreed contract. If a key premise fail
      instead of dispatching sub-agents. -->
 
 [workflow-state:in_progress-inline]
-Classify this turn first: answer read-only requests directly. For execution, reconcile the confirmed plan, execution grant, latest instructions, and checkpoint; `in_progress` alone is not permission.
-Within authorized scope use `trellis-before-dev` -> investigate/edit -> relevant tests and `trellis-check` skill -> repair -> final whole-deliverable acceptance -> `trellis-update-spec`. Reuse checks while candidate code, inputs, and premises are unchanged; rerun affected checks after a change. Keep project-required hooks/CI. Commit task work only when needed and authorized (Phase 3.4). Use `/trellis:finish-work` when no task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; no-code tasks need no work commit. Otherwise deliver the verified result and keep the task resumable. Continue through checks and local repair without renewed approval. If an independent reviewer is warranted but unavailable in inline mode, disclose that coverage limit.
-Do not dispatch implement/check sub-agents in inline mode.
-Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant spec/research loaded by skills.
-Resolve local technical issues within the agreed contract. If a key premise fails or wider authority is needed, pause only the affected work; report evidence, impact, attempts, and one recommended adjustment with its decisive tradeoff, not just a list of options. Continue independent work. Diagnose from new evidence, not a fixed retry count.
+Answer read-only turns directly. `in_progress` is not permission: reconcile confirmed plan, execution grant, scope, latest instructions, and checkpoint.
+Phase 2.1/2.2 inline: use `trellis-before-dev`, edit/test/repair, then `trellis-check`. Do not dispatch implement/check sub-agents. If independent review is warranted but unavailable, report it pending. Reuse checks only while code, inputs, and premises are unchanged; rerun affected checks and accept the whole result and project-required gates.
+Within scope, local fixes need no renewed approval. Failed key premise or wider authority? Pause affected work, report evidence and one recommended adjustment; diagnose from new evidence, not retry counts.
+Phase 3.3 spec review; Phase 3.4 commit, Phase 3.5 `/trellis:finish-work` (archive/journal/auto-commits), push, and publish need separate grants. Otherwise deliver and keep the task resumable. Detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.X> --platform <host>`; use `claude`, `cursor`, `codex`, `pi`, or `dsh` (Codex reads its dispatch mode).
 [/workflow-state:in_progress-inline]
 
 ### Phase 3: Finish
@@ -510,9 +507,9 @@ Curate `implement.jsonl` before dispatch. The platform hook/plugin then:
 
 [codex-inline, DeepSeek Harness]
 
-1. Load the `trellis-before-dev` skill to read project guidelines
-2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present
-3. Consult materials under `{TASK_DIR}/research/`
+1. Load `trellis-before-dev` to establish relevant project guidelines
+2. Use complete current `{TASK_DIR}/prd.md`, `design.md` if present, and `implement.md` if present; read only missing, incomplete, or changed parts
+3. Consult relevant research under `{TASK_DIR}/research/` if not already available and current
 4. Implement the code per reviewed artifacts
 5. Run relevant tests and checks, repair failures, and report evidence
 
@@ -549,7 +546,7 @@ If issues are found, use new evidence to diagnose and fix within the confirmed c
 
 [/codex-inline, DeepSeek Harness]
 
-**Evidence and final pass**: A check remains valid for the same candidate code, inputs, and premises; do not rerun it for reassurance. After a change, rerun affected checks. The last 2.2 must still assess the entire deliverable, not just the latest chunk: list affected packages with `get_context.py --mode packages`, read their spec Quality Check sections, verify key behavior and integration, and run project-mandated hook/CI checks at their required point. Neither a lint pass nor an agent's report alone establishes acceptance.
+**Evidence and final pass**: A check remains valid for the same candidate code, inputs, and premises; do not rerun it for reassurance. After a change, rerun affected checks. The last 2.2 must still assess the entire deliverable, not just the latest chunk: identify affected packages with `get_context.py --mode packages` if not already known, use their current spec Quality Check sections (read missing or changed ones), verify key behavior and integration, and run project-mandated hook/CI checks at their required point. Neither a lint pass nor an agent's report alone establishes acceptance.
 
 #### 2.3 Rollback `[on demand]`
 

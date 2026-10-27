@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRequire } from "node:module";
 import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import vm from "node:vm";
 import ts from "typescript";
 import { collectPiTemplates } from "../../src/configurators/pi.js";
@@ -1362,6 +1362,192 @@ describe("pi extension: context injection limits (issue #441)", () => {
   });
 
   describe("buildContext: per-file and per-artifact caps", () => {
+    it("builds the actual child prompt with complete context once or a targeted truncation path", () => {
+      const root = createRoot();
+      const taskDir = activateTask(root, "task-child-prompt");
+      const generated = collectPiTemplates().get(".pi/agents/trellis-implement.md");
+      expect(generated).toBeDefined();
+      if (!generated) throw new Error("Pi implement agent was not generated");
+      writeFileSync(join(root, ".pi", "agents", "trellis-implement.md"), generated);
+      const keyRule = "KEY RULE: preserve the public interface";
+      writeFileSync(join(root, "key-spec.md"), `${"x".repeat(90)}\n${keyRule}\n`);
+      writeFileSync(
+        join(taskDir, "implement.jsonl"),
+        `${JSON.stringify({ file: "key-spec.md", reason: "contract" })}\n`,
+      );
+      writeFileSync(join(taskDir, "prd.md"), "# Requirement\n");
+      const { buildPromptForTest } = evaluateExtension<{
+        buildPromptForTest: (
+          root: string,
+          input: { agent: string; prompt: string },
+          key: string,
+        ) => string;
+      }>(
+        `${getExtensionTemplate()}\nexport { buildPrompt as buildPromptForTest };`,
+        root,
+        {},
+      );
+      const input = {
+        agent: "trellis-implement",
+        prompt: "Active task: .trellis/tasks/task-child-prompt\nImplement",
+      };
+
+      writeConfig(root, "context_injection:\n  max_file_bytes: 0\n");
+      const complete = buildPromptForTest(root, input, SESSION_KEY);
+      const completeContext = complete.slice(complete.lastIndexOf("## Trellis Task Context"));
+      expect(completeContext.split(keyRule)).toHaveLength(2);
+      expect(complete).toContain("use complete relevant task/spec content directly");
+      expect(completeContext).not.toContain("[Trellis: truncated");
+
+      writeConfig(root, "context_injection:\n  max_file_bytes: 40\n");
+      const partial = buildPromptForTest(root, input, SESSION_KEY);
+      const partialContext = partial.slice(partial.lastIndexOf("## Trellis Task Context"));
+      expect(partialContext).not.toContain(keyRule);
+      expect(partialContext).toContain(
+        "[Trellis: truncated at 40 bytes — read key-spec.md for the full content]",
+      );
+      expect(partial).toContain("Read only relevant named truncated/index-only files");
+      expect(partial).not.toContain("This platform does NOT auto-inject task context");
+
+      rmSync(join(taskDir, "implement.jsonl"));
+      const noManifest = buildPromptForTest(root, input, SESSION_KEY);
+      const noManifestContext = noManifest.slice(
+        noManifest.lastIndexOf("## Trellis Task Context"),
+      );
+      expect(noManifestContext).toContain("# Requirement");
+      expect(noManifestContext).toContain(
+        "implement.jsonl has no curated entries, so no spec/research context was injected",
+      );
+      expect(noManifest).toContain(
+        "If task artifacts arrived but curated spec/research content did not",
+      );
+
+      writeConfig(root, "context_injection:\n  max_file_bytes: 0\n");
+      writeFileSync(
+        join(taskDir, "implement.jsonl"),
+        [
+          { file: "key-spec.md", reason: "valid contract" },
+          { file: "missing.md", reason: "required missing rule" },
+        ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      );
+      const partlyMissing = buildPromptForTest(root, input, SESSION_KEY);
+      const partlyMissingContext = partlyMissing.slice(
+        partlyMissing.lastIndexOf("## Trellis Task Context"),
+      );
+      expect(partlyMissingContext).toContain(keyRule);
+      expect(partlyMissingContext).toContain("missing.md: required missing rule");
+      expect(partlyMissingContext).toContain("not inlined (missing or inaccessible file)");
+    });
+
+    it("keeps file context and named directory gaps in the actual child prompt", () => {
+      const root = createRoot();
+      const taskDir = activateTask(root, "task-directory-prompt");
+      const outside = mkdtempSync(join(tmpdir(), "trellis-pi-dir-outside-"));
+      try {
+        const generated = collectPiTemplates().get(".pi/agents/trellis-implement.md");
+        if (!generated) throw new Error("Pi implement agent was not generated");
+        writeFileSync(join(root, ".pi", "agents", "trellis-implement.md"), generated);
+        writeFileSync(join(root, "valid.md"), "VALID RULE\n");
+        mkdirSync(join(root, "refdir"), { recursive: true });
+        writeFileSync(join(root, "refdir", "a.md"), "ALLOWED DIRECTORY RULE\n");
+        writeFileSync(join(outside, "secret.md"), "SECRET OUTSIDE\n");
+        writeFileSync(join(taskDir, "prd.md"), "# Requirement\n");
+        writeFileSync(
+          join(taskDir, "implement.jsonl"),
+          [
+            { file: "valid.md", reason: "good file" },
+            { file: "refdir/", type: "directory", reason: "allowed directory" },
+            { file: "missing-dir/", type: "directory", reason: "required missing directory" },
+            { file: `../${basename(outside)}/`, type: "directory", reason: "outside directory" },
+          ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+        );
+        const { buildPromptForTest } = evaluateExtension<{
+          buildPromptForTest: (
+            root: string,
+            input: { agent: string; prompt: string },
+            key: string,
+          ) => string;
+        }>(`${getExtensionTemplate()}\nexport { buildPrompt as buildPromptForTest };`, root, {});
+        const prompt = buildPromptForTest(
+          root,
+          { agent: "trellis-implement", prompt: "Active task: .trellis/tasks/task-directory-prompt\nReview" },
+          SESSION_KEY,
+        );
+        const context = prompt.slice(prompt.lastIndexOf("## Trellis Task Context"));
+        expect(context).toContain("=== valid.md ===\nVALID RULE");
+        expect(context).toContain("directory entry; inspect relevant Markdown files under allowed directory) — refdir/: allowed directory");
+        expect(context).toContain("missing or inaccessible directory; report if unavailable) — missing-dir/: required missing directory");
+        expect(context).toContain(`disallowed directory outside allowed roots; cannot auto-read or bypass path restrictions) — ../${basename(outside)}/: outside directory`);
+        expect(context).not.toContain("ALLOWED DIRECTORY RULE");
+        expect(context).not.toContain("SECRET OUTSIDE");
+      } finally {
+        rmSync(outside, { recursive: true, force: true });
+      }
+    });
+
+    it("retains valid specs but refuses outside and symlink-escape JSONL references", () => {
+      const root = createRoot();
+      const taskDir = activateTask(root, "task-path-safety");
+      const outside = mkdtempSync(join(tmpdir(), "trellis-pi-outside-"));
+      try {
+        writeFileSync(join(root, "valid.md"), "VALID INSIDE CONTENT\n");
+        writeFileSync(join(outside, "secret.md"), "SECRET OUTSIDE CONTENT\n");
+        symlinkSync(join(outside, "secret.md"), join(root, "escape.md"));
+        writeFileSync(
+          join(taskDir, "implement.jsonl"),
+          [
+            { file: "valid.md", reason: "inside" },
+            { file: "escape.md", reason: "symlink escape" },
+            { file: `../${basename(outside)}/secret.md`, reason: "parent escape" },
+          ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+        );
+        writeFileSync(join(taskDir, "prd.md"), "# Requirement\n");
+        const { buildContextForTest } = loadExtensionInternals();
+        const context = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+        expect(context).toContain("=== valid.md ===\nVALID INSIDE CONTENT");
+        expect(context).toContain("disallowed path outside allowed roots) — escape.md");
+        expect(context).toContain("disallowed path outside allowed roots) — ../");
+        expect(context).toContain("cannot auto-read or bypass path restrictions");
+        expect(context).not.toContain("SECRET OUTSIDE CONTENT");
+      } finally {
+        rmSync(outside, { recursive: true, force: true });
+      }
+    });
+
+    it("allows task and spec context under an intentionally external .trellis symlink", () => {
+      const root = mkdtempSync(join(tmpdir(), "trellis-pi-external-root-"));
+      const store = mkdtempSync(join(tmpdir(), "trellis-pi-external-store-"));
+      try {
+        symlinkSync(store, join(root, ".trellis"), "dir");
+        const taskDir = join(store, "tasks", "external-task");
+        mkdirSync(taskDir, { recursive: true });
+        mkdirSync(join(store, ".runtime", "sessions"), { recursive: true });
+        mkdirSync(join(store, "spec"), { recursive: true });
+        writeFileSync(join(store, "spec", "rule.md"), "EXTERNAL WORKFLOW SPEC\n");
+        writeFileSync(join(taskDir, "prd.md"), "# External requirement\n");
+        writeFileSync(
+          join(taskDir, "implement.jsonl"),
+          [
+            { file: ".trellis/spec/rule.md", reason: "external spec" },
+            { file: ".trellis/spec/", type: "directory", reason: "external directory" },
+          ].map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+        );
+        writeFileSync(
+          join(store, ".runtime", "sessions", `${SESSION_KEY}.json`),
+          JSON.stringify({ current_task: "tasks/external-task" }),
+        );
+        const { buildContextForTest } = loadExtensionInternals();
+        const context = buildContextForTest(root, "trellis-implement", SESSION_KEY);
+        expect(context).toContain("EXTERNAL WORKFLOW SPEC");
+        expect(context).toContain("directory entry; inspect relevant Markdown files under allowed directory) — .trellis/spec/: external directory");
+        expect(context).toContain("# External requirement");
+        expect(context).not.toContain("No active Trellis task found");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+        rmSync(store, { recursive: true, force: true });
+      }
+    });
+
     it("under-cap content is inlined with no truncation/index notices (golden)", () => {
       const root = createRoot();
       const taskDir = activateTask(root, "task-golden");

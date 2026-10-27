@@ -20,6 +20,18 @@ safe when read by a sub-agent.** If required gates are absent, the AI in the
 main session will silently skip them. Prior bugs around planning gates and
 Phase 3.4 commit reminders hit exactly this failure mode.
 
+The in-progress body is a **gate-and-route reminder**, not a second copy of
+the phase walkthrough. It names Phase 2 implementation/check, Phase 3.3 spec
+review, conditional Phase 3.4 commit and Phase 3.5 wrap-up, authority and
+review boundaries, and the `get_context.py --mode phase --step` route to full
+instructions. Regression tests check those gates and actual step extraction;
+they do not require the old verbose prose. A short breadcrumb must not silently
+drop a required step or imply that task status grants permission.
+The detail route must include `--platform` with the current host's stable id;
+for Codex, pass `codex` so existing config chooses the inline or sub-agent
+branch. Omitting the flag surfaces both branches and can contradict an explicit
+inline restriction.
+
 This document is the source of truth for the runtime mechanics. The user-facing
 breadcrumb body lives in `.trellis/workflow.md`; this spec covers its behavioral
 contract and the surrounding parsers, writers, lifecycle, and reachability.

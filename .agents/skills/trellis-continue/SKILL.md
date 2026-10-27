@@ -7,9 +7,11 @@ description: "Resume work on the current task. Loads the workflow Phase Index, f
 
 Resume work on the current task — pick up at the right phase/step in `.trellis/workflow.md`.
 
+Use current, complete session/task context already supplied to this agent. If the active task, scope, authority, or phase is missing, truncated, or stale after compaction, a new session, or a file change, recover that part with the commands below; do not reread an unchanged complete overview just because this skill was opened.
+
 ---
 
-## Step 1: Load Current Context
+## Step 1: Establish Current Context
 
 ```bash
 python3 ./.trellis/scripts/get_context.py
@@ -17,7 +19,7 @@ python3 ./.trellis/scripts/get_context.py
 
 Confirms: current task, git state, recent commits.
 
-## Step 2: Load the Phase Index
+## Step 2: Establish the Phase Index
 
 ```bash
 python3 ./.trellis/scripts/get_context.py --mode phase

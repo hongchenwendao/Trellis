@@ -191,7 +191,8 @@ describeFn("retained shared-hook output", () => {
       const executing = payload();
       expect(executing).toContain("scope-fixture");
       expect(executing).toContain("in_progress");
-      expect(executing).toContain("authorized scope");
+      expect(executing).toContain("execution grant, scope");
+      expect(executing).toContain("`in_progress` is not permission");
       fs.writeFileSync(path.join(taskDir, "task.json"), "{}");
       const broken = payload();
       expect(broken).toContain("task_error");
