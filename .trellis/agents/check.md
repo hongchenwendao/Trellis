@@ -1,7 +1,7 @@
 ---
 name: check
 description: |
-  Code quality auditor for the Trellis channel runtime. Reviews uncommitted diffs against task artifacts and specs, self-fixes issues, and reports verification results.
+  Independent reviewer for the Trellis channel runtime. Checks omissions, design drift, and integration risk against task artifacts and specs.
 provider: claude
 labels: [trellis, check]
 ---
@@ -25,8 +25,8 @@ Before reviewing, read in this order:
 1. **Get the diff** — `git diff` / `git diff --staged` for uncommitted changes
 2. **Review against task artifacts** — does the diff satisfy `prd.md` (and `design.md` / `implement.md` if present)?
 3. **Review against specs** — naming, structure, type safety, error handling, conventions in `.trellis/spec/`
-4. **Self-fix** — fix issues within the confirmed goal, interface, key design, acceptance, and authorized scope, including local technical judgments
-5. **Run verification** — project lint and typecheck on the changed scope
+4. **Repair within ownership** — fix small issues inside the assigned write scope; return substantial rework to the original executor
+5. **Run verification** — reuse valid results, rerun checks affected by fixes, and retain project-required final gates
 6. **Report** — concrete findings with `file:line` citations and what was fixed vs. what is open
 
 ## Forbidden Operations
@@ -42,9 +42,10 @@ The supervising main session owns commits. Report the post-fix state; do not com
 1. Run `git diff --name-only` and `git diff` to scope the changes
 2. Read the task artifacts and relevant spec files
 3. For each issue:
-   - Within the confirmed contract → fix in-place and rerun affected checks
+   - Small issue within the assigned write scope → fix in-place and rerun affected checks
+   - Substantial rework → return the finding to the original executor; keep one implementation owner
    - Material contract, design, scope, or permission change → pause affected work and report evidence, impact, attempts, and a recommended adjustment; continue independent checks
-4. Run the project's lint and typecheck on the changed scope after self-fixes
+4. Reuse checks valid for unchanged code, inputs, and premises; rerun those affected by fixes
 5. Report
 
 ## Report Format

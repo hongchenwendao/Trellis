@@ -6403,7 +6403,9 @@ describe("regression: current-task path normalization", () => {
       { cwd: tmpDir, encoding: "utf-8", env: sessionEnv() },
     );
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain("Curate implement.jsonl / check.jsonl");
+    expect(result.stderr).toContain("Curate the selected role's implement.jsonl or check.jsonl");
+    expect(result.stderr).toContain("before dispatching that sub-agent");
+    expect(result.stderr).toContain("if either seeded manifest stays empty, start with --allow-empty-context");
     expect(result.stderr).toContain('{"file": "<path>", "reason": "<why>"}');
     expect(result.stderr).toContain("get_context.py --mode packages");
   });
@@ -6790,6 +6792,7 @@ print(len(entries))
       expect(r.stdout).toContain("no curated entries");
       expect(r.stdout).toContain("add-context");
       expect(r.stdout).toContain("--allow-empty-context");
+      expect(r.stdout).toContain("Direct work or another role only?");
       expect(r.stdout).not.toContain("Current task set to");
     });
 
@@ -6805,6 +6808,15 @@ print(len(entries))
     it("--allow-empty-context bypasses the gate", () => {
       setupTaskRepo();
       writeManifests("", "");
+      const r = runStart("--allow-empty-context");
+      expect(r.status).toBe(0);
+      expect(r.stdout).toContain("Current task set to");
+      expect(r.stdout).toContain("Before dispatching a role, curate its jsonl spec context");
+    });
+
+    it("starts with one delegated role prepared and the other manifest empty", () => {
+      setupTaskRepo();
+      writeManifests(curatedRow, "");
       const r = runStart("--allow-empty-context");
       expect(r.status).toBe(0);
       expect(r.stdout).toContain("Current task set to");
@@ -6972,7 +6984,7 @@ print(len(entries))
     }
   });
 
-  it("[workflow-state-r2] template workflow.md [workflow-state:planning] mentions artifact gates + required jsonl curation", () => {
+  it("[workflow-state-r2] planning requires context only for roles actually delegated", () => {
     const wf = templateWorkflowMd();
     const match = wf.match(
       /\[workflow-state:planning\]([\s\S]*?)\[\/workflow-state:planning\]/,
@@ -6984,7 +6996,7 @@ print(len(entries))
       /Complex: finish `prd\.md`, `design\.md`, and `implement\.md`/,
     );
     expect(body).toContain(
-      "curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start",
+      "curate the dispatched role's spec/research manifest before dispatch",
     );
     expect(body).toContain("execution grant");
     expect(body).toContain("answer read-only requests directly");
@@ -7001,21 +7013,16 @@ print(len(entries))
     expect(inProgress).toContain("Diagnose from new evidence, not a fixed retry count");
   });
 
-  it("[#292] workflow and brainstorm templates treat seed-only jsonl as not planning-ready", () => {
+  it("[#292] direct execution can start without both role manifests, while delegation needs curated context", () => {
     const wf = templateWorkflowMd();
     expect(wf).not.toContain("seed-only manifests are tolerated by consumers");
     expect(wf).not.toContain(
       "curated when extra spec or research context is needed",
     );
-    expect(wf).toContain(
-      'Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one real `{"file": "...", "reason": "..."}` entry before `task.py start`.',
-    );
-    expect(wf).toContain(
-      "Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.",
-    );
-    expect(wf).toContain(
-      "`implement.jsonl` and `check.jsonl` each contain at least one real curated entry (seed row does not count)",
-    );
+    expect(wf).toContain("Before dispatching a role, its manifest must contain at least one real");
+    expect(wf).toContain("Do not prepare a reviewer manifest merely because the host supports sub-agents.");
+    expect(wf).toContain("start the task with `--allow-empty-context`");
+    expect(wf).toContain("task activation does not require context for a role that will not run.");
 
     const templateRoot = path.join(
       path.dirname(fileURLToPath(import.meta.url)),
@@ -7031,7 +7038,7 @@ print(len(entries))
         "utf-8",
       );
       expect(content, relativePath).toContain(
-        "Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready.",
+        "Every role selected for immediate dispatch has a curated manifest",
       );
     }
   });
@@ -7165,8 +7172,7 @@ print(len(entries))
       path.join(".trellis", "workflow.md"),
       templateWorkflowMd(),
     );
-    // Codex defaults to inline since 0.5.9; opt into sub-agent dispatch
-    // explicitly so the legacy spawn-trellis-implement block surfaces.
+    // The legacy alias still exposes the sub-agent-capable route.
     writeConfigYaml("codex:\n  dispatch_mode: sub-agent\n");
 
     const contextScript = path.join(
@@ -7232,14 +7238,14 @@ print(len(entries))
       { cwd: tmpDir, encoding: "utf-8" },
     );
 
-    expect(output).toContain("The platform hook/plugin auto-handles");
+    expect(output).toContain("Curate `implement.jsonl` before dispatch. The platform hook/plugin then:");
     expect(output).toContain(
       "For Codex, `SubagentStart` supplies native context injection",
     );
     expect(output).not.toContain(
       "The pull-based sub-agent definition auto-handles",
     );
-    expect(output).not.toContain("Load the `trellis-before-dev` skill");
+    expect(output).toContain("For a small, clear task, the main session may be the executor");
   });
 
   it("[pi] step 2.1 describes extension-backed sub-agent context path", () => {
@@ -7261,7 +7267,7 @@ print(len(entries))
       { cwd: tmpDir, encoding: "utf-8" },
     );
 
-    expect(output).toContain("The platform hook/plugin auto-handles");
+    expect(output).toContain("Curate `implement.jsonl` before dispatch. The platform hook/plugin then:");
     expect(output).toContain("Reads `implement.jsonl`");
     expect(output).not.toContain("The Codex sub-agent definition auto-handles");
     expect(output).not.toContain("Load the `trellis-before-dev` skill");
@@ -7799,7 +7805,7 @@ print(len(entries))
       ),
     ) as { hookSpecificOutput: { additionalContext: string } };
     expect(defaultRun.hookSpecificOutput.additionalContext).toContain(
-      "<codex-mode>auto: implement/check work defaults to Trellis sub-agents; native Codex context injection is preferred and child-side loading is the fallback. The main session still coordinates, clarifies, updates specs, commits, and finishes.</codex-mode>",
+      "<codex-mode>auto: choose one execution owner by task; delegate independent deliverables and risk-triggered review when warranted. Native Codex context injection is preferred and child-side loading is the fallback. The main session coordinates and accepts the whole result; independent review requires actual findings from a different executor.</codex-mode>",
     );
 
     // Legacy sub-agent alias → the auto-dispatch banner.
@@ -7811,7 +7817,7 @@ print(len(entries))
       ),
     ) as { hookSpecificOutput: { additionalContext: string } };
     expect(subAgentRun.hookSpecificOutput.additionalContext).toContain(
-      "<codex-mode>auto: implement/check work defaults to Trellis sub-agents; native Codex context injection is preferred and child-side loading is the fallback. The main session still coordinates, clarifies, updates specs, commits, and finishes.</codex-mode>",
+      "<codex-mode>auto: choose one execution owner by task; delegate independent deliverables and risk-triggered review when warranted. Native Codex context injection is preferred and child-side loading is the fallback. The main session coordinates and accepts the whole result; independent review requires actual findings from a different executor.</codex-mode>",
     );
   });
 

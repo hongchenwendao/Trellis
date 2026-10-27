@@ -38,7 +38,7 @@ Read the specific guideline files referenced — the index is a pointer, not the
 
 ## Step 3: Run Project Checks
 
-Run the project's lint, type-check, and test commands. Fix any failures before proceeding.
+Run the relevant project lint, type-check, and tests for the changed scope. Reuse still-valid results for unchanged code, inputs, and premises; after a change rerun affected checks. Retain the final whole-deliverable assessment and any project-required hook/CI gates. A lint pass or verbal report alone is not acceptance.
 
 ## Step 4: Review Against Checklist
 
@@ -107,5 +107,6 @@ Report every material finding you find. Then:
 
 - Within the confirmed goal, external behavior, interface, key design, acceptance, and authorized scope → fix directly, including technical judgments, then rerun affected checks.
 - A changed public contract, acceptance criterion, key design, scope, or permission → pause the affected work and report evidence, impact, attempts, and a recommended adjustment. Continue independent work. After confirmation, update the original task's superseded decision and affected steps.
+- An independent reviewer, when assigned, focuses on omissions, design drift, and integration risk; make small fixes within the assigned write scope and return substantial rework to the original executor. Count review as independent only after a different executor returns actual findings. If no such result exists, report it as pending or unavailable rather than presenting self-check as independent review.
 
 If a fix needs wider authority, do not widen it silently. Continue useful diagnosis when new evidence offers a next step; report an unchanged impasse rather than repeating the same failed approach.

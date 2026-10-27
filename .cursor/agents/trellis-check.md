@@ -1,6 +1,6 @@
 ---
 name: trellis-check
-description: Trellis quality check agent. Use this exact agent for Trellis task verification, check.jsonl context injection, and self-fixing code review. Do not use generic/default/generalPurpose agents for Trellis checks.
+description: Trellis independent reviewer for consequential task changes; uses check.jsonl context injection. Use when independent review is warranted, not for every executor self-check.
 tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 # Check Agent
@@ -37,14 +37,13 @@ Before checking, read:
 1. **Get code changes** - Use git diff to get uncommitted code
 2. **Review task artifacts** - Check changes against prd.md, design.md if present, and implement.md if present
 3. **Check against specs** - Verify code follows guidelines
-4. **Self-fix** - Fix issues yourself, not just report them
-5. **Run verification** - typecheck and lint
+4. **Review risk** - Find omissions, design drift, and integration failures
+5. **Repair within ownership** - Fix small assigned issues; return substantial rework to the original executor
+6. **Verify** - Reuse valid results and rerun checks affected by fixes
 
 ## Important
 
-**Fix issues yourself**, don't just report them.
-
-You have write and edit tools, you can modify code directly.
+Fix small issues within your assigned write scope. Keep the original executor as owner of substantial rework; report the finding and needed correction rather than taking over its files.
 
 ---
 
@@ -73,15 +72,13 @@ Read the task's prd.md, design.md if present, and implement.md if present, then 
 
 After finding issues:
 
-1. Fix the issue directly (use edit tool)
-2. Record what was fixed
+1. Fix a small issue directly only inside your assigned write scope; return substantial rework to the original executor
+2. Record what was fixed or handed back
 3. Continue checking other issues
 
 ### Step 4: Run Verification
 
-Run project's lint and typecheck commands to verify changes.
-
-If failed, fix issues and re-run.
+Reuse results valid for unchanged code, inputs, and premises. Run checks affected by your fixes and project-required final gates. A lint pass alone is not acceptance.
 
 ---
 
@@ -111,5 +108,5 @@ If failed, fix issues and re-run.
 
 ### Summary
 
-Checked X files, found Y issues, all fixed.
+State which issues were fixed, which need the original executor, and which checks remain valid.
 ```

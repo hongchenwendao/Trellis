@@ -159,3 +159,48 @@ For actual publication, follow `.trellis/spec/cli/backend/release-process.md`
 through npm's prompts, publish core first, wait for `@mokshaall/trellis-core@beta`
 to resolve to `0.6.18-beta.0`, then publish CLI; each publish requires its own
 OTP. No provenance is requested.
+
+## Stable 0.6.18 follow-up — local preparation (2026-10-27)
+
+The user subsequently authorized GitHub push and npm publication. The main
+agent owns the commit, push, and live npm publish; this section records local
+release preparation only. The beta pair is already published, and `0.6.18`
+was confirmed unoccupied on npm before version preparation.
+
+- Promoted both package versions from `0.6.18-beta.0` to `0.6.18`; the CLI
+  source dependency remains `workspace:*`, and the packed CLI pins core to
+  exactly `0.6.18`. `release-preflight` reports matching versions and npm tag
+  `latest`. No lockfile dependency upgrade was needed.
+- Added `src/migrations/manifests/0.6.18.json` with round-two workflow
+  guidance, `breaking: false`, and no automatic file migration. Updated the
+  current English and Chinese README install commands to untagged
+  `npm install -g @mokshaall/trellis`; updated the personal release spec to
+  the stable tarballs and `latest` publish sequence while retaining the beta
+  as release history.
+- New local artifacts are
+  `artifacts/npm/mokshaall-trellis-core-0.6.18.tgz` and
+  `artifacts/npm/mokshaall-trellis-0.6.18.tgz`. The old beta tarballs remain
+  beside them. Actual tarballs and `npm pack --dry-run --json` each report
+  233 core files and 644 CLI files. Both include README, LICENSE, COPYRIGHT,
+  NOTICE, and no private task/workspace, credential, log, or cache paths.
+  The CLI has only the `moksha-trellis` bin and contains the new workflow,
+  check/continuation templates, and stable manifest. Both `npm publish
+  --dry-run` commands report public `latest` publication.
+- `pnpm build`, CLI typecheck and lint passed. Targeted update, upgrade, and
+  migration suites passed: 87 tests. The prior round-two full CLI run passed
+  1596 tests; it was not repeated for the version/packaging-only change.
+- The final stable tarballs were installed together into
+  `/private/tmp/trellis-stable-smoke.PY0dUL/prefix` without touching the
+  linked global CLI. Fresh five-platform init, `platforms --json`, update,
+  update dry-run, version/help, and `upgrade --dry-run` passed. The only bin
+  was `moksha-trellis`; upgrade targets `@mokshaall/trellis@latest`. A project
+  initialized from the published beta tarballs then updated with the stable
+  tarball CLI from `0.6.18-beta.0` to `0.6.18`; a user-edited skill and
+  user-owned workspace file survived. The registry version responses in
+  these offline smoke runs were mocked; fetch logs confirm the stable CLI
+  queried the personal package's `/latest` endpoint.
+
+Logs and pack inventories: `/private/tmp/trellis-npm-stable-verify/`,
+`/private/tmp/trellis-npm-stable-{build,targeted,typecheck,lint}.log`, and
+`/private/tmp/trellis-stable-smoke.PY0dUL/`. Stable publication and remote
+visibility remain for the main agent.

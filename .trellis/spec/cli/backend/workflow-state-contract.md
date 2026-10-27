@@ -59,6 +59,34 @@ only for a missing material decision or grant. Reuse unaffected evidence and
 preserve final whole-deliverable acceptance. Commit, push, publication, destructive
 actions, and other risky operations remain subject to actual permission.
 
+### Task-based execution and review
+
+The in-progress breadcrumb chooses ownership by the deliverable, not a fixed
+implement→check agent relay. One executor may investigate, implement, test, and
+repair a clear bounded task. Independently deliverable work may be delegated;
+the executor owns necessary checks and evidence. An independent reviewer is
+needed for public-interface changes, substantial cross-module changes, important
+risk, or an explicit user/project rule. This is a consequence-based judgment,
+not a file-count threshold. The reviewer looks for omissions, design drift, and
+integration risk. Small assigned fixes can stay with the reviewer; substantial
+rework goes back to the original execution owner. If a host or explicit inline
+mode cannot provide independent review, report that coverage limit.
+Do not mark it complete on the strength of a plan to dispatch or the executor's
+own check: a different executor must actually return findings. If no such
+result exists, leave the independent review pending or unavailable.
+
+Curate `implement.jsonl` only before dispatching an implementer and
+`check.jsonl` only before dispatching a reviewer. The task-start command's
+existing `--allow-empty-context` flag supports direct work when seeded
+manifests are empty; it does not waive context for a later delegated role.
+Direct executors load specs through `trellis-before-dev`. Keep existing context
+injection, fallback loading, and sub-agent recursion guards for real delegation.
+
+Checks remain valid for unchanged candidate code, inputs, and premises. After
+a change, rerun affected checks. Final whole-deliverable acceptance and
+project-required hook/CI gates still apply; neither lint nor a worker report
+alone establishes completion. No cache or hash tracker is required.
+
 ---
 
 ## Marker syntax

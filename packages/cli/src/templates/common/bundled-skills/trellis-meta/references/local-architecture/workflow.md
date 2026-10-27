@@ -26,8 +26,8 @@ Classify the current request before phase routing: consultation and read-only an
 
 `workflow.md` separates routing by platform capability:
 
-- Platforms with sub-agent support: dispatch `trellis-implement` by default for implementation and `trellis-check` for checking.
-- Platforms without sub-agent support: the main session reads skills such as `trellis-before-dev`, then executes directly.
+- Platforms with sub-agent support: the main session may execute a clear bounded task directly or dispatch `trellis-implement` for an independent deliverable. Use `trellis-check` for an independent review when interface, substantial cross-module, important-risk, or explicit requirements call for one.
+- Platforms without sub-agent support: the main session reads skills such as `trellis-before-dev`, then executes and checks directly; disclose when warranted independent review was unavailable.
 
 When changing local AI behavior, update the routing descriptions in `workflow.md` first, then check whether the corresponding platform skill, command, or agent files need to stay in sync.
 

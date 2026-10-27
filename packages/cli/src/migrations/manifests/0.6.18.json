@@ -1,0 +1,9 @@
+{
+  "version": "0.6.18",
+  "description": "Stable release of the five-platform fork with task-based execution ownership and proportionate checks",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Enhancements:**\n- Workflow guidance now lets one executor complete a bounded task end to end; independent review is selected for public-interface, cross-module, important-risk, or explicitly required work.\n- Checks can be reused for unchanged code and premises, while affected checks run again after a change.\n- Current templates and prompts keep Claude Code, Codex, Cursor, Pi, and dsh aligned with these rules.",
+  "migrations": [],
+  "notes": "Run moksha-trellis update to refresh managed workflow guidance and prompts. No --migrate step is required; locally modified files remain subject to the normal update conflict flow."
+}

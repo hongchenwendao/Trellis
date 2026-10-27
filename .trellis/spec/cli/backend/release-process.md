@@ -6,10 +6,12 @@
 
 ## Overview
 
-This `personal` fork prepares `@mokshaall/trellis` and
-`@mokshaall/trellis-core` as a version-locked pair. Its first release is
-`0.6.18-beta.0` on the `beta` npm dist-tag. The operator publishes local
-tarballs, core before CLI; no git tag or CI publish is part of this path.
+This `personal` fork publishes `@mokshaall/trellis` and
+`@mokshaall/trellis-core` as a version-locked pair. Its first release was
+`0.6.18-beta.0` on the `beta` npm dist-tag. The next release is stable
+`0.6.18` on `latest`, so an untagged npm install gets the stable CLI. The
+operator publishes local tarballs, core before CLI; no git tag or CI publish
+is part of this path.
 
 The upstream release process below applies only to the official repository:
 
@@ -20,7 +22,7 @@ The upstream release process below applies only to the official repository:
 
 Both lines require matching core and CLI versions and npm dist-tags.
 
-## Personal fork: local beta tarballs
+## Personal fork: local stable tarballs
 
 From the `personal` branch, use the locked dependencies and run the existing
 checks before packing. `prepack` copies the root README, LICENSE, COPYRIGHT,
@@ -40,19 +42,20 @@ node packages/cli/scripts/release-preflight.js npm-tag # beta
 ```
 
 Inspect the two actual tarballs before publishing. The CLI must pin
-`@mokshaall/trellis-core` to exactly `0.6.18-beta.0`, contain only the
+`@mokshaall/trellis-core` to exactly `0.6.18`, contain only the
 `moksha-trellis` bin, and include README, LICENSE, COPYRIGHT, and NOTICE.
 Install both tarballs into an isolated temporary prefix and exercise init,
 update, and `upgrade --dry-run` before using npm publication commands.
 
 ```bash
 export NPM_CONFIG_CACHE="$(mktemp -d /private/tmp/trellis-npm-publish.XXXXXX)"
-npm publish artifacts/npm/mokshaall-trellis-core-0.6.18-beta.0.tgz --tag beta --access public --no-provenance --dry-run
-npm publish artifacts/npm/mokshaall-trellis-0.6.18-beta.0.tgz --tag beta --access public --no-provenance --dry-run
+npm publish artifacts/npm/mokshaall-trellis-core-0.6.18.tgz --tag latest --access public --no-provenance --dry-run
+npm publish artifacts/npm/mokshaall-trellis-0.6.18.tgz --tag latest --access public --no-provenance --dry-run
 # After checking the dry runs and authenticating, publish core first.
-npm publish artifacts/npm/mokshaall-trellis-core-0.6.18-beta.0.tgz --tag beta --access public --no-provenance
-npm view @mokshaall/trellis-core@beta version --prefer-online --registry=https://registry.npmjs.org/ # expect 0.6.18-beta.0; wait until visible
-npm publish artifacts/npm/mokshaall-trellis-0.6.18-beta.0.tgz --tag beta --access public --no-provenance
+npm publish artifacts/npm/mokshaall-trellis-core-0.6.18.tgz --tag latest --access public --no-provenance
+npm view @mokshaall/trellis-core@latest version --prefer-online --registry=https://registry.npmjs.org/ # expect 0.6.18; wait until visible
+npm publish artifacts/npm/mokshaall-trellis-0.6.18.tgz --tag latest --access public --no-provenance
+npm view @mokshaall/trellis@latest version --prefer-online --registry=https://registry.npmjs.org/ # expect 0.6.18
 ```
 
 Complete npm's authentication and OTP prompts for each publish; never store

@@ -31,10 +31,10 @@ Classify the current turn first. Answer consultation, explanation, review, or re
 
 - `status=planning` + no `prd.md` → **1.1** (load `trellis-brainstorm`)
 - `status=planning` + `prd.md` only → decide whether the task is lightweight or complex. Lightweight can move to **1.4** review; complex returns to **1.1** to add `design.md` + `implement.md`.
-- `status=planning` + complex artifacts complete + sub-agent jsonl not curated (empty, or only a legacy `_example` placeholder row) → **1.3**
-- `status=planning` + required artifacts complete + required jsonl curated or inline mode → **1.4** when the applicable plan is confirmed and execution is authorized. Reuse a valid grant already recorded or supplied in this request; ask only for a missing material decision or grant.
+- `status=planning` + a role selected for immediate delegation but its jsonl is uncurated → **1.3** for that role. Host support alone does not select a role.
+- `status=planning` + required artifacts complete → **1.4** when the applicable plan is confirmed and execution is authorized. Use `task.py start --allow-empty-context` if either seeded manifest is empty, even when the other role is ready; curate each role before its dispatch. Reuse a valid grant already recorded or supplied in this request.
 - `status=in_progress` + implementation not started + applicable grant → **2.1**
-- `status=in_progress` + implementation done, not yet checked → **2.2**
+- `status=in_progress` + implementation done, not yet checked → **2.2**; the executor may complete checks for a simple task, while material interface/design/integration risk or explicit requirements call for independent review.
 - `status=in_progress` + check passed → **3.3** (spec update). Enter **3.4** only when task work needs committing and that action is authorized. Enter finish-work when no current-task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; otherwise deliver the verified result and keep the task available for continuation.
 - `status=completed` (rare; usually archived immediately) → check the latest commit/archive grants before any wrap-up action
 
@@ -43,6 +43,7 @@ Phase rules (full detail in `.trellis/workflow.md`):
 1. Run steps **in order** within a phase — `[required]` steps must not be skipped
 2. `[once]` steps are already done if the required output exists. `prd.md` alone can be enough only for lightweight tasks; complex tasks also need `design.md` and `implement.md`.
 3. A local repair within the confirmed contract continues without renewed approval. A falsified key premise pauses affected work; report evidence and a recommendation, update the original task after confirmation, and resume at the affected step. Continue independent work and retain unaffected checks.
+4. Reuse evidence for unchanged candidate code, inputs, and premises. After a change rerun affected checks; retain final whole-deliverable acceptance and project-required hook/CI gates.
 
 ## Step 4: Load the Specific Step
 

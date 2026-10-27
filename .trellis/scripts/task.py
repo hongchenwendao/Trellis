@@ -208,10 +208,10 @@ def cmd_start(args: argparse.Namespace) -> int:
                 f"{'has' if len(empty_manifests) == 1 else 'have'} no curated entries",
                 Colors.RED,
             ))
-            print("Sub-agents (implement/check) would run with zero spec context.")
+            print("A dispatched role needs curated spec context before it runs.")
             print(f"  Curate:  python3 .trellis/scripts/task.py add-context {task_input} implement <path> \"<why>\"")
             print(f"  Verify:  python3 .trellis/scripts/task.py validate {task_input}")
-            print("  Intentionally empty? Re-run start with --allow-empty-context")
+            print("  Direct work or another role only? Re-run start with --allow-empty-context")
             return 1
 
     # Convert to relative path for storage. repo_root is resolved because
@@ -263,7 +263,7 @@ def cmd_start(args: argparse.Namespace) -> int:
             _record_start_state(task_json_path, repo_root)
 
         print()
-        print(colored("The hook will now inject context from this task's jsonl files.", Colors.BLUE))
+        print(colored("Before dispatching a role, curate its jsonl spec context; the hook then injects it.", Colors.BLUE))
 
         run_task_hooks("after_start", task_json_path, repo_root)
         return 0

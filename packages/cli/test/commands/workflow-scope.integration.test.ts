@@ -123,8 +123,27 @@ describe("native workflow delivery and safe adoption", () => {
       await init({ yes: true, [option]: true });
       const collected = collectPlatformTemplates(id);
       expect(collected?.get(entry)).toBe(read(entry));
+      if (id !== "dsh") {
+        const prefix = id === "claude-code" ? ".claude" : `.${id}`;
+        const extension = id === "codex" ? "toml" : "md";
+        const implement = `${prefix}/agents/trellis-implement.${extension}`;
+        const check = `${prefix}/agents/trellis-check.${extension}`;
+        expect(read(implement)).toBe(collected?.get(implement));
+        expect(read(check)).toBe(collected?.get(check));
+        expect(read(implement)).toMatch(/relevant tests|focused tests/);
+        expect(read(check)).toContain("substantial rework");
+      }
       expect(read(".trellis/workflow.md")).toBe(
         replacePythonCommandLiterals(workflowMdTemplate),
+      );
+      expect(read(".trellis/workflow.md")).toContain(
+        "A small clear task can stay with one executor",
+      );
+      expect(read(".trellis/workflow.md")).toContain(
+        "Before dispatching a role, its manifest must contain at least one real",
+      );
+      expect(read(".trellis/workflow.md")).toContain(
+        "After a change, rerun affected checks",
       );
       for (const rule of policy) expect(read(entry)).toContain(rule);
       if (id === "dsh") {
@@ -148,6 +167,9 @@ describe("native workflow delivery and safe adoption", () => {
       await update({ skipAll: true });
       expect(read(".trellis/workflow.md")).toBe(
         replacePythonCommandLiterals(workflowMdTemplate),
+      );
+      expect(read(".trellis/workflow.md")).toContain(
+        "A small clear task can stay with one executor",
       );
       expect(read(entry)).toBe(collected?.get(entry));
       for (const rule of policy) expect(read(entry)).toContain(rule);

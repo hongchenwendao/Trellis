@@ -257,13 +257,23 @@ describe("trellis template constants", () => {
     // hosts, so its main-session dispatch guidance must not recursively apply
     // to a sub-agent that is already doing the requested work.
     const block = inProgressBreadcrumb();
-    expect(block).toContain("Main-session default");
     expect(block).toContain("Sub-agent self-exemption");
-    expect(block).toContain("already running as `trellis-implement`");
-    expect(block).toContain("do NOT spawn another `trellis-implement`");
-    expect(block).toContain("already running as `trellis-check`");
-    expect(block).toContain("do NOT spawn another `trellis-check`");
+    expect(block).toContain("already running as `trellis-implement` or `trellis-check`");
+    expect(block).toContain("do NOT dispatch another Trellis implement/check agent");
     expect(block).toContain("main session only");
+  });
+
+  it("chooses one execution owner and independent review by consequence, not a fixed relay", () => {
+    const block = inProgressBreadcrumb();
+    expect(block).toContain("A small clear task can stay with one executor");
+    expect(block).toContain("public-interface change, substantial cross-module change, important risk, or explicit user/project requirement");
+    expect(block).toContain("not merely a file count");
+    expect(block).toContain("Count review as independent only after a different executor actually reviews and returns findings");
+    expect(block).toContain("If no reviewer ran, report review as pending or unavailable");
+    expect(block).toContain("Return substantial rework to the original executor");
+    expect(block).toContain("candidate code, inputs, and premises are unchanged");
+    expect(block).toContain("final integrated acceptance and project-required hooks/CI");
+    expect(block).not.toContain("`trellis-implement` -> `trellis-check`");
   });
 
   it("[issue-237] workflow.md Phase 2 dispatch steps require prompt recursion guards", () => {

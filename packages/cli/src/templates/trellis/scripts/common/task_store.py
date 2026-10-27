@@ -675,8 +675,8 @@ def cmd_create(args: argparse.Namespace) -> int:
     print("  - Complex task: add design.md and implement.md before task.py start", file=sys.stderr)
     if created_jsonl:
         print(
-            "  - Curate implement.jsonl / check.jsonl (created empty) as spec/research "
-            "manifests before task.py start when sub-agents need context:",
+            "  - Curate the selected role's implement.jsonl or check.jsonl "
+            "before dispatching that sub-agent:",
             file=sys.stderr,
         )
         print(
@@ -686,6 +686,10 @@ def cmd_create(args: argparse.Namespace) -> int:
         )
         print(
             "      list available specs: python3 .trellis/scripts/get_context.py --mode packages",
+            file=sys.stderr,
+        )
+        print(
+            "      if either seeded manifest stays empty, start with --allow-empty-context",
             file=sys.stderr,
         )
     print("  - Use /trellis:continue or phase context to decide the next step", file=sys.stderr)

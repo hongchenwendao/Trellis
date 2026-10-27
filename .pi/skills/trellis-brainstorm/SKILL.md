@@ -166,7 +166,7 @@ When presenting a plan for confirmation, show Goal, In Scope, Out of Scope, Acce
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
-`implement.md` is not a replacement for `implement.jsonl`. Use JSONL files only for manifest-style spec and research references when the task needs them.
+`implement.md` is not a replacement for role-specific JSONL context. Curate `implement.jsonl` before dispatching an implementer and `check.jsonl` before dispatching an independent reviewer; each dispatched role needs real spec/research entries. Direct execution loads specs through `trellis-before-dev`. Start with `--allow-empty-context` if either seeded manifest is empty; this does not waive curation before a later dispatch. Host support for sub-agents alone does not require either role or manifest.
 
 ## PRD Convergence Pass
 

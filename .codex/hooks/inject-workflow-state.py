@@ -271,8 +271,8 @@ def _codex_mode_banner(config: dict) -> str:
     """Emit a `<codex-mode>` banner for the additionalContext payload.
 
     Reads `codex.dispatch_mode` from .trellis/config.yaml; defaults to
-    `auto`, which dispatches Trellis sub-agents using native Codex context
-    injection with a child-side fallback. This does not rely on inherited
+    `auto`, which permits task-based Trellis sub-agent dispatch using native
+    Codex context injection with a child-side fallback. This does not rely on inherited
     parent transcripts: `fork_turns` remains caller-controlled, and
     fresh-history sub-agents still receive their explicit delegated task and
     inherited session configuration. `inline` is an explicit opt-out; the
@@ -285,9 +285,11 @@ def _codex_mode_banner(config: dict) -> str:
     mode = _resolve_codex_dispatch_mode(config)
     if mode == "auto":
         meaning = (
-            "auto: implement/check work defaults to Trellis sub-agents; native Codex "
-            "context injection is preferred and child-side loading is the fallback. "
-            "The main session still coordinates, clarifies, updates specs, commits, and finishes."
+            "auto: choose one execution owner by task; delegate independent deliverables "
+            "and risk-triggered review when warranted. Native Codex context injection "
+            "is preferred and child-side loading is the fallback. The main session "
+            "coordinates and accepts the whole result; independent review requires "
+            "actual findings from a different executor."
         )
     else:
         meaning = (

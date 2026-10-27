@@ -62,9 +62,9 @@ Codex keeps this as a fallback when native `SubagentStart` context injection is 
 
 ## Modification Principles
 
-1. **Keep responsibilities single-purpose**. Do not mix research, implement, and check responsibilities into one agent.
+1. **Keep ownership clear**. An implementer owns its assigned deliverable through tests and repairs. A separately dispatched check agent reviews consequential changes; it is not a mandatory relay for every task.
 2. **Specify the read order**. Agents must know to start from the active task, read jsonl/spec context, then read `prd.md`, `design.md` if present, and `implement.md` if present.
-3. **Specify write boundaries**. Research usually only writes `research/`; implement can write code; check can fix issues.
+3. **Specify write boundaries**. Research usually only writes `research/`; implement can write its assigned code; check can fix small assigned issues and returns substantial rework to the original executor.
 4. **Keep semantics synchronized in multi-platform projects**. If the user configured Claude, Codex, and Cursor together, decide whether changes to one platform's agent also need to be applied to others.
 
 ## Do Not Default To Editing Upstream Templates

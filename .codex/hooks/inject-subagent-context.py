@@ -624,7 +624,7 @@ def build_implement_prompt(original_prompt: str, context: str) -> str:
     return f"""<!-- trellis-hook-injected -->
 # Implement Agent Task
 
-You are the Implement Agent in the Multi-Agent Pipeline.
+You are the executor for this assigned deliverable.
 
 ## Your Context
 
@@ -642,16 +642,17 @@ All the information you need has been prepared for you:
 
 ## Workflow
 
-1. **Understand specs** - All dev specs are injected above, understand them
-    2. **Understand task artifacts** - Read requirements, technical design if present, and execution plan if present
-    3. **Implement feature** - Implement following specs and task artifacts
-4. **Self-check** - Ensure code quality against check specs
+1. **Understand** - Read the injected specs and task artifacts; investigate the assigned problem
+2. **Implement** - Complete the assigned result within its confirmed contract
+3. **Verify and repair** - Run relevant tests, lint, and typecheck for your scope; fix failures and rerun affected checks
+4. **Hand off evidence** - Report the changed files, checks run and results, and remaining gaps
 
 ## Important Constraints
 
 - Do NOT execute git commit, only code modifications
 - Follow all dev specs injected above
-- Report list of modified/created files when done"""
+- Reuse a check result only while candidate code, inputs, and premises remain unchanged
+- Do not leave ordinary failures for a separate check agent"""
 
 
 def build_check_prompt(original_prompt: str, context: str) -> str:
@@ -659,7 +660,7 @@ def build_check_prompt(original_prompt: str, context: str) -> str:
     return f"""<!-- trellis-hook-injected -->
 # Check Agent Task
 
-You are the Check Agent in the Multi-Agent Pipeline (code and cross-layer checker).
+You are the independent reviewer assigned to this deliverable.
 
 ## Your Context
 
@@ -677,15 +678,15 @@ All check specs and dev specs you need:
 
 ## Workflow
 
-1. **Get changes** - Run `git diff --name-only` and `git diff` to get code changes
-2. **Check against specs** - Check item by item against specs above
-3. **Self-fix** - Fix issues directly, don't just report
-4. **Run verification** - Run project's lint and typecheck commands
+1. **Get changes** - Inspect the candidate diff and the executor's check evidence
+2. **Review** - Look for omissions, design drift, and integration risk against task artifacts and specs
+3. **Repair within ownership** - Fix small issues only in your assigned write scope; return substantial rework to the original executor
+4. **Verify** - Reuse results valid for unchanged code, inputs, and premises; rerun checks affected by your fixes
 
 ## Important Constraints
 
-- Fix issues yourself, don't just report
-- Must execute complete checklist in check specs
+- Report actual findings and checks; a self-check or a plan to review is not an independent review result
+- Execute applicable check specs and project-required final gates
 - Pay special attention to impact radius analysis (L1-L5)"""
 
 
@@ -718,7 +719,7 @@ Finish checklist and requirements:
    - If new pattern/convention found: read target spec file → update it → update index.md if needed
    - If infra/cross-layer change: follow the 7-section mandatory template from update-spec.md
    - If pure code fix with no new patterns: skip this step
-4. **Run final checks** - Execute lint and typecheck
+4. **Run final checks** - Assess the whole deliverable; reuse still-valid lint/typecheck results and run affected or project-required checks
 5. **Confirm ready** - Ensure code is ready for PR
 
 ## Important Constraints
@@ -1074,7 +1075,11 @@ def main():
         sys.exit(0)
 
     # Get current task directory (research doesn't require it)
-    task_dir = get_current_task(repo_root, input_data)
+    task_dir = get_current_task(
+        repo_root,
+        input_data,
+        allow_single_session_fallback=True,
+    )
 
     # implement/check need task directory
     if subagent_type in AGENTS_REQUIRE_TASK:

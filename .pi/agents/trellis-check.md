@@ -1,7 +1,7 @@
 ---
 name: trellis-check
 description: |
-  Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
+  Independent reviewer for omissions, design drift, and integration risk; fixes small assigned issues and verifies affected checks.
 tools: read, write, edit, bash, find, grep
 ---
 
@@ -49,8 +49,8 @@ You are already the `trellis-check` sub-agent that the main session dispatched. 
 2. Read `prd.md`, `design.md` if present, and `implement.md` if present.
 3. Read and follow the spec and research files listed in the task's `check.jsonl`.
 4. Review all changed code against the task artifacts and project specs.
-5. Fix issues directly when they are within scope.
-6. Run the relevant lint, typecheck, and focused tests available for the touched code.
+5. Look for omissions, design drift, and integration risk. Fix small issues within the assigned write scope; return substantial rework to the original executor.
+6. Reuse valid check results and rerun checks affected by fixes, including project-required final gates.
 
 ## Review Priorities
 

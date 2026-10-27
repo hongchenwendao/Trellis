@@ -53,7 +53,9 @@ python3 ./.trellis/scripts/task.py list-archive
 
 # Code-spec context (injected into implement/check agents via JSONL).
 # `implement.jsonl` / `check.jsonl` are seeded on `task create` for sub-agent-capable
-# platforms; the AI curates real spec + research entries during planning when needed.
+# platforms. Curate a role's spec + research entries before dispatching that role.
+# If either seeded manifest is empty, `start --allow-empty-context` bypasses the
+# start-time gate; it does not waive curation before that role is dispatched.
 python3 ./.trellis/scripts/task.py add-context <name> <action> <file> <reason>
 python3 ./.trellis/scripts/task.py list-context <name> [action]
 python3 ./.trellis/scripts/task.py validate <name>
@@ -192,7 +194,7 @@ Preserve existing task fields and artifacts. If the correct status cannot be det
 - 1.0 Create task `[required · once]` (only when a development record is needed and task-creation consent exists)
 - 1.1 Requirement exploration `[required · repeatable]` (`prd.md`; complex tasks also need `design.md` + `implement.md`)
 - 1.2 Research `[optional · repeatable]`
-- 1.3 Configure context `[required · once]` — Claude Code, Cursor, Pi, and Codex sub-agent mode (inline Codex and DeepSeek Harness skip)
+- 1.3 Configure context `[conditional · once per delegated role]` — prepare that role's manifest before dispatch (direct work skips)
 - 1.4 Activate task `[required · once]` (after applicable plan confirmation and execution authorization; status → in_progress)
 - 1.5 Completion criteria
 
@@ -202,7 +204,7 @@ Preserve existing task fields and artifacts. If the correct status cannot be det
 Classify the current turn first: answer read-only requests directly, even with this active task. For development, load `trellis-brainstorm` and resolve only material open decisions.
 Lightweight: `prd.md` can be enough. Complex: finish `prd.md`, `design.md`, and `implement.md`. Before `task.py start`, confirm the applicable plan and execution grant; reuse grants already supplied in the request or task history.
 Multi-deliverable scope: consider a parent task plus independently verifiable child tasks; dependencies must be written in child artifacts, not implied by tree position.
-Sub-agent mode: curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start.
+If delegation is planned, curate the dispatched role's spec/research manifest before dispatch; direct execution does not need either manifest.
 [/workflow-state:planning]
 
 <!-- Per-turn breadcrumb: shown throughout Phase 1 when codex.dispatch_mode=inline.
@@ -232,11 +234,12 @@ Inline mode: skip jsonl curation; Phase 2 reads artifacts/specs via `trellis-bef
 Sub-agent dispatch protocol applies to Claude Code, Cursor, Pi, and Codex sub-agent mode, including Codex native `SubagentStart` context injection with child-side pull fallback and `trellis-research`: every dispatch prompt starts with `Active task: <task path from task.py current>` before role-specific instructions.
 
 [workflow-state:in_progress]
-Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent form when verifying after code changes.
+Tools: `trellis-implement` / `trellis-research` are sub-agent types only (Task/Agent tool, NOT Skill; there is no skill by these names). `trellis-update-spec` is a skill. `trellis-check` exists as both a skill and an agent; use the agent for an independent review when the task calls for one.
 Classify this turn first: answer read-only requests directly. For execution, reconcile the confirmed plan, execution grant, latest instructions, and checkpoint; `in_progress` alone is not permission.
-Flow within authorized scope: `trellis-implement` -> `trellis-check` -> `trellis-update-spec`. Commit task work only when needed and authorized (Phase 3.4). Use `/trellis:finish-work` when no task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; no-code tasks need no work commit. Otherwise deliver the verified result and keep the task resumable. Continue through checks and local repair without renewed approval.
-Main-session default: dispatch implement/check sub-agents. Sub-agent self-exemption: if already running as `trellis-implement`, do NOT spawn another `trellis-implement` or `trellis-check`; if already running as `trellis-check`, do NOT spawn another `trellis-check` or `trellis-implement`. Dispatch is main session only.
+Within authorized scope choose one execution owner for each deliverable. A small clear task can stay with one executor through investigation, implementation, tests, and repair; delegate independently deliverable work when useful. Require an independent reviewer for a public-interface change, substantial cross-module change, important risk, or explicit user/project requirement, not merely a file count. Count review as independent only after a different executor actually reviews and returns findings; a plan to dispatch, a self-check, or a role label is not evidence. If no reviewer ran, report review as pending or unavailable. Finish with whole-deliverable acceptance and `trellis-update-spec`; lint or a worker report alone is insufficient. Commit task work only when needed and authorized (Phase 3.4). Use `/trellis:finish-work` when no task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; no-code tasks need no work commit. Otherwise deliver the verified result and keep the task resumable. Continue through checks and local repair without renewed approval.
+Sub-agent self-exemption: if already running as `trellis-implement` or `trellis-check`, do NOT dispatch another Trellis implement/check agent. Dispatch is main session only. Return substantial rework to the original executor; a reviewer may fix small assigned issues.
 Dispatch prompt starts with `Active task: <task path from task.py current>`. Read context: jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`.
+Reuse checks while candidate code, inputs, and premises are unchanged. After a change rerun affected checks; retain final integrated acceptance and project-required hooks/CI.
 Resolve local technical issues within the agreed contract. If a key premise fails or wider authority is needed, pause only the affected work; report evidence, impact, attempts, and one recommended adjustment with its decisive tradeoff, not just a list of options. Continue independent work. Diagnose from new evidence, not a fixed retry count.
 [/workflow-state:in_progress]
 
@@ -247,7 +250,7 @@ Resolve local technical issues within the agreed contract. If a key premise fail
 
 [workflow-state:in_progress-inline]
 Classify this turn first: answer read-only requests directly. For execution, reconcile the confirmed plan, execution grant, latest instructions, and checkpoint; `in_progress` alone is not permission.
-Flow within authorized scope: `trellis-before-dev` -> edit -> `trellis-check` -> validation -> `trellis-update-spec`. Commit task work only when needed and authorized (Phase 3.4). Use `/trellis:finish-work` when no task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; no-code tasks need no work commit. Otherwise deliver the verified result and keep the task resumable. Continue through checks and local repair without renewed approval.
+Within authorized scope use `trellis-before-dev` -> investigate/edit -> relevant tests and `trellis-check` skill -> repair -> final whole-deliverable acceptance -> `trellis-update-spec`. Reuse checks while candidate code, inputs, and premises are unchanged; rerun affected checks after a change. Keep project-required hooks/CI. Commit task work only when needed and authorized (Phase 3.4). Use `/trellis:finish-work` when no task work remains uncommitted and archive/journal writes plus enabled auto-commits are authorized; no-code tasks need no work commit. Otherwise deliver the verified result and keep the task resumable. Continue through checks and local repair without renewed approval. If an independent reviewer is warranted but unavailable in inline mode, disclose that coverage limit.
 Do not dispatch implement/check sub-agents in inline mode.
 Read context: `prd.md` -> `design.md if present` -> `implement.md if present`, plus relevant spec/research loaded by skills.
 Resolve local technical issues within the agreed contract. If a key premise fails or wider authority is needed, pause only the affected work; report evidence, impact, attempts, and one recommended adjustment with its decisive tradeoff, not just a list of options. Continue independent work. Diagnose from new evidence, not a fixed retry count.
@@ -289,7 +292,7 @@ When a user request matches one of these intents inside an active task, route fi
 
 - Read-only request -> answer directly, without changing task phase.
 - Planning or unclear requirements -> `trellis-brainstorm`.
-- `in_progress` implementation/check -> dispatch `trellis-implement` / `trellis-check`.
+- `in_progress` implementation/check -> choose a single executor or delegate an independent deliverable with `trellis-implement`; dispatch `trellis-check` only when independent review is warranted.
 - Repeated debugging -> `trellis-break-loop`; spec updates -> `trellis-update-spec`.
 
 [/Claude Code, Cursor, codex-sub-agent, Pi]
@@ -398,7 +401,7 @@ Brainstorm and research can interleave freely — pause to research a technical 
 
 [Claude Code, Cursor, codex-sub-agent, Pi]
 
-Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the right spec/research context. `task create` seeds empty files; fill in real entries.
+If a role will be delegated, curate that role's manifest before dispatch so the agent gets the right spec/research context. `task create` seeds empty files on sub-agent-capable hosts; empty files do not require an agent relay.
 
 **Location**: `{TASK_DIR}/implement.jsonl` and `{TASK_DIR}/check.jsonl` (already exist).
 
@@ -412,7 +415,7 @@ Curate `implement.jsonl` and `check.jsonl` so the Phase 2 sub-agents get the rig
 - Code files (`src/**`, `packages/**/*.ts`, etc.) — those are read by the sub-agent during implementation, not pre-registered here
 - Files you're about to modify — same reason
 
-**Split between the two files**:
+**Choose only the roles actually dispatched**:
 - `implement.jsonl` → specs + research the implement sub-agent needs to write code correctly
 - `check.jsonl` → specs for the check sub-agent (quality guidelines, check conventions, same research if needed)
 
@@ -437,9 +440,9 @@ python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reas
 
 If an older task still has a seed `_example` line, remove it when adding real entries; consumers skip it.
 
-Ready gate: both `implement.jsonl` and `check.jsonl` must contain at least one real `{"file": "...", "reason": "..."}` entry before `task.py start`. An empty file or legacy seed row is not ready.
+Before dispatching a role, its manifest must contain at least one real `{"file": "...", "reason": "..."}` entry. An empty file or legacy seed row cannot supply delegated context. Do not prepare a reviewer manifest merely because the host supports sub-agents.
 
-Skip this step only when both files already have real curated entries.
+For direct execution, skip this step and load applicable specs through `trellis-before-dev`. If either seeded manifest is empty, start the task with `--allow-empty-context`; this existing flag affects the start-time guard, not the requirement to curate context before a later dispatch.
 
 [/Claude Code, Cursor, codex-sub-agent, Pi]
 
@@ -457,7 +460,7 @@ After the applicable plan is confirmed and implementation is authorized for its 
 python3 ./.trellis/scripts/task.py start <task-dir>
 ```
 
-For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. On sub-agent-dispatch platforms, `implement.jsonl` and `check.jsonl` must both have real curated entries before start. Runtime consumers tolerate missing or seed-only manifests for compatibility, but that tolerance is not a planning-ready state.
+For lightweight tasks, `prd.md` can be enough. For complex tasks, `prd.md`, `design.md`, and `implement.md` must exist and be reviewed before start. If either seeded manifest is empty, add `--allow-empty-context` even when the other role is ready. Curate each selected role's manifest before its dispatch; task activation does not require context for a role that will not run.
 
 After this command succeeds, the breadcrumb auto-switches to `[workflow-state:in_progress]`. The command records progress; it does not create or expand permission. Keep a brief note of the plan, scope, prohibited operations, and next step for later resumption.
 
@@ -476,7 +479,7 @@ If `task.py start` errors with a session-identity message (no context key from h
 
 [Claude Code, Cursor, codex-sub-agent, Pi]
 
-| `implement.jsonl` and `check.jsonl` each contain at least one real curated entry (seed row does not count) | ✅ |
+| Each role selected for immediate dispatch has a curated manifest (seed row does not count); start uses `--allow-empty-context` if either seeded manifest is empty | conditional |
 
 [/Claude Code, Cursor, codex-sub-agent, Pi]
 
@@ -490,13 +493,15 @@ Goal: deliver the confirmed and authorized scope through implementation, checks,
 
 [Claude Code, Cursor, codex-sub-agent, Pi]
 
-Spawn the implement sub-agent:
+When implementation is an independently deliverable delegated assignment, spawn the implement sub-agent. For a small, clear task, the main session may be the executor: load `trellis-before-dev`, implement, test, repair, and hand the result into the same Phase 2.2 acceptance path. Preserve any explicit user/project ownership rule.
+
+For delegated work:
 
 - **Agent type**: `trellis-implement`
-- **Task description**: Implement the reviewed task artifacts, consulting materials under `{TASK_DIR}/research/`; finish by running project lint and type-check
+- **Task description**: Own the assigned deliverable from investigation through implementation, relevant tests, repair, and evidence handoff; consult `{TASK_DIR}/research/`
 - **Dispatch prompt guard**: The prompt MUST start with `Active task: <task path>`, then tell the spawned agent it is already the `trellis-implement` sub-agent and must implement directly, not spawn another `trellis-implement` / `trellis-check`.
 
-The platform hook/plugin auto-handles:
+Curate `implement.jsonl` before dispatch. The platform hook/plugin then:
 - Reads `implement.jsonl` and injects referenced spec/research files into the agent prompt
 - Injects `prd.md`, `design.md` if present, and `implement.md` if present
 - For Codex, `SubagentStart` supplies native context injection; the agent profile keeps child-side loading as the fallback
@@ -509,7 +514,7 @@ The platform hook/plugin auto-handles:
 2. Read `{TASK_DIR}/prd.md`, then `design.md` if present, then `implement.md` if present
 3. Consult materials under `{TASK_DIR}/research/`
 4. Implement the code per reviewed artifacts
-5. Run project lint and type-check
+5. Run relevant tests and checks, repair failures, and report evidence
 
 [/codex-inline, DeepSeek Harness]
 
@@ -517,17 +522,19 @@ The platform hook/plugin auto-handles:
 
 [Claude Code, Cursor, codex-sub-agent, Pi]
 
-Spawn the check sub-agent:
+Check the whole requested deliverable against task artifacts and relevant specs. Arrange an independent reviewer for a public-interface change, substantial cross-module change, important risk, or explicit user/project requirement. Judge actual contract and integration consequences, not the number of files. A simple bounded task may be checked and repaired by its executor without a separate agent. Independent review is complete only when a different executor has actually returned findings; if dispatch did not occur or no result arrived, report it as pending or unavailable, never as a completed review.
+
+When independent review is warranted, curate `check.jsonl` and spawn the check sub-agent:
 
 - **Agent type**: `trellis-check`
-- **Task description**: Review all code changes against specs and task artifacts; fix any findings directly; ensure lint and type-check pass
+- **Task description**: Review omissions, design drift, and integration risk against specs and task artifacts; fix small assigned issues, but return substantial rework to the execution owner
 - **Dispatch prompt guard**: The prompt MUST start with `Active task: <task path>`, then tell the spawned agent it is already the `trellis-check` sub-agent and must review/fix directly, not spawn another `trellis-check` / `trellis-implement`.
 
 The check agent's job:
 - Review code changes against specs
 - Review code changes against `prd.md`, `design.md` if present, and `implement.md` if present
-- Auto-fix issues it finds
-- Run lint and typecheck to verify
+- Fix small issues within its assigned write scope; report substantial rework to the original executor
+- Reuse still-valid check results and run the checks affected by any fix
 
 [/Claude Code, Cursor, codex-sub-agent, Pi]
 
@@ -538,11 +545,11 @@ Load the `trellis-check` skill and verify the code per its guidance:
 - lint / type-check / tests
 - Cross-layer consistency (when changes span layers)
 
-If issues are found, use new evidence to diagnose and fix within the confirmed contract, then re-check affected behavior. Report an unchanged impasse, widening impact, or a needed material decision instead of repeating the same attempt.
+If issues are found, use new evidence to diagnose and fix within the confirmed contract, then re-check affected behavior. Report an unchanged impasse, widening impact, or a needed material decision instead of repeating the same attempt. If the task warrants independent review but this host or explicit inline mode cannot provide it, state that coverage limit; do not label the inline self-check independent.
 
 [/codex-inline, DeepSeek Harness]
 
-**Final pass (before Phase 3.4 commit)**: the last 2.2 of a task must run full-scope, not just on the latest implement chunk. List all affected packages with `python3 ./.trellis/scripts/get_context.py --mode packages`, then load each package's spec index Quality Check section. This catches cross-layer / multi-package issues a mid-iteration local 2.2 cannot.
+**Evidence and final pass**: A check remains valid for the same candidate code, inputs, and premises; do not rerun it for reassurance. After a change, rerun affected checks. The last 2.2 must still assess the entire deliverable, not just the latest chunk: list affected packages with `get_context.py --mode packages`, read their spec Quality Check sections, verify key behavior and integration, and run project-mandated hook/CI checks at their required point. Neither a lint pass nor an agent's report alone establishes acceptance.
 
 #### 2.3 Rollback `[on demand]`
 

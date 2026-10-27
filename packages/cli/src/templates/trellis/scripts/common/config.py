@@ -140,8 +140,8 @@ def get_session_auto_commit(repo_root: Path | None = None) -> bool:
 def get_codex_dispatch_mode(repo_root: Path | None = None) -> str:
     """Return Codex dispatch mode.
 
-    Default is ``auto``, which dispatches Trellis sub-agents and uses native
-    context injection with a child-side fallback. ``inline`` is an explicit
+    Default is ``auto``, which permits task-based Trellis sub-agent dispatch
+    with native context injection and a child-side fallback. ``inline`` is an explicit
     opt-out. ``sub-agent`` remains a backwards-compatible alias for ``auto``.
 
     Invalid explicit configuration falls back to ``inline`` rather than

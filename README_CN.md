@@ -69,7 +69,7 @@ Codex 保留 auto/inline 两种模式，dsh 使用内联流程。
 
 ```bash
 # 1. 安装此 fork
-npm install -g @mokshaall/trellis@beta
+npm install -g @mokshaall/trellis
 
 # 2. 在目标项目中初始化所需平台
 cd /path/to/your-project

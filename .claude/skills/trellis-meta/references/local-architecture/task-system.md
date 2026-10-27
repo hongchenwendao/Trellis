@@ -89,7 +89,7 @@ If the platform or shell environment has no stable session identity, `task.py st
 
 ## JSONL Context
 
-`implement.jsonl` and `check.jsonl` are context manifests for sub-agents to read first. They do not replace `implement.md`; `implement.md` is the human-readable execution plan.
+`implement.jsonl` and `check.jsonl` are context manifests for sub-agents to read first. Curate only the role that will actually be dispatched; direct work loads specs through `trellis-before-dev`. Empty seeded manifests may require `task.py start --allow-empty-context`, but a role's manifest must be curated before that role is dispatched. They do not replace `implement.md`; `implement.md` is the human-readable execution plan.
 
 Format:
 

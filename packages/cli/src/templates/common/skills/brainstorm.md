@@ -161,7 +161,7 @@ When presenting a plan for confirmation, show Goal, In Scope, Out of Scope, Acce
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
-`implement.md` is not a replacement for `implement.jsonl`. On sub-agent-dispatch workflows, `implement.jsonl` and `check.jsonl` must each contain at least one real spec/research entry before `task.py start`; an empty manifest, or one holding only a legacy `_example` placeholder row, does not count. Inline workflows skip this JSONL gate because Phase 2 loads context through `trellis-before-dev`.
+`implement.md` is not a replacement for role-specific JSONL context. Curate `implement.jsonl` before dispatching an implementer and `check.jsonl` before dispatching an independent reviewer; each dispatched role needs a real spec/research entry, not an empty or legacy `_example` row. Direct execution loads specs through `trellis-before-dev`. Start with `--allow-empty-context` if either seeded manifest is empty; this does not waive curation before a later dispatch. Host support for sub-agents alone does not require either role or manifest.
 
 ## PRD Convergence Pass
 
@@ -187,7 +187,7 @@ Before declaring planning ready:
 - Repository-answerable questions have already been answered through inspection.
 - Blocking open questions are empty.
 - Complex tasks have `design.md` and `implement.md`.
-- Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready.
+- Every role selected for immediate dispatch has a curated manifest; direct work can use `--allow-empty-context` and curate a role later if actually delegated.
 - The applicable plan is confirmed and implementation is authorized for its scope, possibly in the current request when referring to an existing plan.
 
 Do not infer authorization from task status or artifact presence. Resolve local technical choices within the confirmed goal, interface, key design, acceptance, and scope; a material change needs a targeted replacement decision.

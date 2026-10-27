@@ -54,3 +54,5 @@ In dsh:
 - dsh has no project-level sub-agent definition surface, so Trellis ships no
   `trellis-implement` / `trellis-check` / `trellis-research` agent prompts
   here — the workflow skills run those phases inline in the main session.
+  For a change that warrants independent review, report that this host's
+  Trellis path supplies only self-check coverage.

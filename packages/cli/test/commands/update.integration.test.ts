@@ -252,13 +252,13 @@ describe("update() integration", () => {
     expect(entries.filter((e) => e.startsWith(".backup-")).length).toBe(0);
   });
 
-  it("queries the personal beta dist-tag for update version guidance", async () => {
+  it("queries the personal stable dist-tag for update version guidance", async () => {
     await setupProject();
 
     await update({ dryRun: true });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://registry.npmjs.org/@mokshaall/trellis/beta",
+      "https://registry.npmjs.org/@mokshaall/trellis/latest",
     );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining(`Latest on npm:   ${VERSION}`),
@@ -793,12 +793,12 @@ describe("update() integration", () => {
     expect(fs.readFileSync(versionPath, "utf-8")).toBe(VERSION);
   });
 
-  it("#12 prerelease→stable upgrade with no file changes still updates .version", async () => {
+  it("#12 personal beta→stable upgrade with no file changes still updates .version", async () => {
     await setupProject();
 
-    // Simulate a project at rc.6 (identical templates, just different version stamp)
+    // Simulate an existing personal beta project with its pristine templates.
     const versionPath = versionFilePath();
-    fs.writeFileSync(versionPath, "0.3.0-rc.6");
+    fs.writeFileSync(versionPath, "0.6.18-beta.0");
 
     await update({});
 

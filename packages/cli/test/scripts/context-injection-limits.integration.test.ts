@@ -164,6 +164,32 @@ describe.skipIf(!hasPython())(
       fs.rmSync(tmp, { recursive: true, force: true });
     });
 
+    it("injects execution ownership and independent-review boundaries into actual agent prompts", () => {
+      const output = runHookProbe(
+        tmp,
+        `
+print(mod.build_implement_prompt("IMPLEMENT THIS", "CURATED SPECS"))
+print("---CHECK PROMPT---")
+print(mod.build_check_prompt("REVIEW THIS", "CURATED SPECS"))
+print("---FINISH PROMPT---")
+print(mod.build_finish_prompt("FINISH THIS", "CURATED SPECS"))
+`,
+      );
+      const [implement, rest] = output.split("---CHECK PROMPT---");
+      const [check, finish] = rest.split("---FINISH PROMPT---");
+      expect(implement).toContain("IMPLEMENT THIS");
+      expect(implement).toContain("CURATED SPECS");
+      expect(implement).toContain("Run relevant tests, lint, and typecheck");
+      expect(implement).toContain("fix failures and rerun affected checks");
+      expect(check).toContain("REVIEW THIS");
+      expect(check).toContain("omissions, design drift, and integration risk");
+      expect(check).toContain("return substantial rework to the original executor");
+      expect(check).toContain("a plan to review is not an independent review result");
+      expect(check).toContain("rerun checks affected by your fixes");
+      expect(finish).toContain("FINISH THIS");
+      expect(finish).toContain("reuse still-valid lint/typecheck results");
+    });
+
     describe("common/config.py: get_context_injection_limits", () => {
       it("returns built-in defaults when config.yaml has no context_injection section", () => {
         writeConfig(tmp, "session_auto_commit: true\n");

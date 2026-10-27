@@ -38,8 +38,8 @@ Before implementing, read:
 1. **Understand specs** - Read relevant spec files in `.trellis/spec/`
 2. **Understand task artifacts** - Read prd.md, design.md if present, and implement.md if present
 3. **Implement features** - Write code following specs and task artifacts
-4. **Self-check** - Ensure code quality
-5. **Report results** - Report completion status
+4. **Verify and repair** - Run relevant tests, lint, and type-check for the assigned scope; fix failures and rerun affected checks
+5. **Report evidence** - State what changed, checks run and their results, and any remaining gap
 
 ## Forbidden Operations
 
@@ -76,7 +76,7 @@ Read the task's prd.md, design.md if present, and implement.md if present:
 
 ### 4. Verify
 
-Run project's lint and typecheck commands to verify changes.
+Run relevant tests, lint, and type-check for the assigned scope. Fix failures within the confirmed contract and rerun affected checks. Reuse results only while code, inputs, and premises remain unchanged. Report evidence with the completed deliverable; do not wait for a separate check agent to discover ordinary failures.
 
 ---
 

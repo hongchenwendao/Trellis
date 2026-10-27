@@ -72,7 +72,7 @@ still be searched.
 
 ```bash
 # 1. Install this fork
-npm install -g @mokshaall/trellis@beta
+npm install -g @mokshaall/trellis
 
 # 2. Initialize your project with the platforms you use
 cd /path/to/your-project
@@ -93,18 +93,18 @@ differ. Use the table above for this fork's support boundary.
 The workflow is simple:
 
 1. **Describe what you want** in natural language.
-2. **Brainstorm** with the AI one question at a time until the PRD is clear, then implementation begins.
-3. **Let it run** — the AI calls Trellis Implement and auto-checks the result against specs, lint, type-check, and tests.
+2. **Settle the task** — clarify material requirements and design choices, then authorize implementation.
+3. **Let it run** — one executor can deliver a clear task through tests and repairs; independently deliverable work is delegated, and consequential changes receive independent review when available.
 4. **Type `/trellis:finish-work`** when the work is done or the session context fills up. Trellis archives the task and updates journals.
 
 ## How It Works
 
-Trellis runs a 4-phase loop with auto-invoked skills and sub-agents:
+Trellis runs a 4-phase loop with skills and task-based delegation:
 
 1. **Plan** — `trellis-brainstorm` walks through requirements one question at a time and writes `prd.md`. Research-heavy items go to a `trellis-research` sub-agent. The result is curated specs + research files referenced from `implement.jsonl` / `check.jsonl`.
-2. **Implement** — a `trellis-implement` sub-agent writes code from the PRD with the curated context auto-injected, no git commit.
-3. **Verify** — a `trellis-check` sub-agent reviews the diff against specs and runs lint, type-check, and tests, self-fixing where it can.
-4. **Finish** — a final check runs, then `trellis-update-spec` promotes new learnings back into `.trellis/spec/` so the next session starts smarter.
+2. **Implement** — the main session or a `trellis-implement` agent owns an assigned result through investigation, code, relevant tests, and repairs; delegated agents receive curated context.
+3. **Verify** — assess the whole deliverable against the PRD and specs. Use a separate `trellis-check` reviewer for interface, substantial cross-module, or important-risk changes (or when explicitly required); otherwise the executor can check its own work. Reuse valid checks and rerun those affected by changes.
+4. **Finish** — `trellis-update-spec` captures reusable learnings. Commit and archive actions follow their separate authorization.
 
 ## Resources
 
