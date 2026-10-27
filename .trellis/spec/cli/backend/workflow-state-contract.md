@@ -21,8 +21,43 @@ main session will silently skip them. Prior bugs around planning gates and
 Phase 3.4 commit reminders hit exactly this failure mode.
 
 This document is the source of truth for the runtime mechanics. The user-facing
-breadcrumb body lives in `.trellis/workflow.md`; this spec covers everything
-**around** it (parsers, writers, lifecycle, reachability).
+breadcrumb body lives in `.trellis/workflow.md`; this spec covers its behavioral
+contract and the surrounding parsers, writers, lifecycle, and reachability.
+
+### Scope-based authority
+
+Classify the current request before routing by task status. Consultation,
+explanation, and read-only analysis do not require a development task or a
+task-consent question, including while another task is active. Explicit consent
+already supplied by the user is reused.
+
+Task creation, plan confirmation, and implementation authorization are distinct.
+A user instruction may establish both plan confirmation and execution authority;
+there is no mandatory later-message ceremony. A newly proposed key design still
+needs confirmation. Neither artifact presence nor `task.json.status` grants
+permission. Hooks report status and direct the reader to scope and instructions;
+they do not infer authorization by parsing prose.
+
+After confirmation and authorization, continue implementation, relevant checks,
+and local repair across phase, agent, and session boundaries. Technical judgment
+alone is not a stop condition. A repair is local when it preserves the confirmed
+goal, external behavior, interfaces, key design, acceptance, and authorized scope.
+Keep the existing task note short: applicable plan, execution scope, prohibited
+operations, next action. Update authority notes only for material decision,
+scope, or authorization changes, not every technical choice or repair.
+
+If a key assumption fails or work needs wider authority, pause the affected
+portion and report evidence, impact, attempts, and the recommended adjustment;
+independent work may continue. On confirmation, update the original task's
+affected decision and rework/next step, identifying the decision replaced.
+Continue diagnosis with useful new evidence; report an unchanged repeated
+failure, no new leads, or expanding impact instead of counting retries.
+
+On continuation, reconcile the original task's scope, decisions, recoverable
+authority, valid checks, and next action with the latest user instruction. Ask
+only for a missing material decision or grant. Reuse unaffected evidence and
+preserve final whole-deliverable acceptance. Commit, push, publication, destructive
+actions, and other risky operations remain subject to actual permission.
 
 ---
 
@@ -302,16 +337,26 @@ Which breadcrumbs actually fire in normal flow:
 | `completed` | ❌ DEAD in normal flow | `cmd_archive` writes `status="completed"` and immediately moves the task dir to `archive/`. The session-pointer cleanup in `clear_task_from_sessions` runs before the move, so the resolver loses the pointer in the same call. The block body in workflow.md is preserved for a future status-transition redesign (e.g. an explicit `in_progress → completed` command) but no current code path produces it. |
 | `stale_<source_type>` | ✅ reachable (rare) | Synthesized when the session pointer references a deleted task directory. Emits the generic body via `build_breadcrumb` because no `stale_*` tag is shipped. |
 
-**Test invariant** (`test/regression.test.ts`): workflow-state blocks must
-preserve the runtime gates that cannot be recovered from model memory:
-`no_task` triages and asks for task-creation consent; planning distinguishes
-lightweight PRD-only tasks from complex tasks requiring `prd.md`, `design.md`,
-and `implement.md`; in-progress keeps the commit step reachable before
-`/trellis:finish-work`. See:
+**Test invariants** (`test/regression.test.ts` and template/integration tests):
+`no_task` permits direct consultation; planning distinguishes lightweight PRD-only
+tasks from complex planning artifacts without manufacturing a new approval;
+in-progress continues only within confirmed authorized scope and keeps the
+permission boundary for Phase 3.4 visible. Preserve marker pairing, phase/step
+extraction, task-error handling, context readiness, and recursion guards.
 
-- `test that workflow.md [workflow-state:in_progress] mentions commit (Phase 3.4)`
-- `test that workflow.md [workflow-state:planning] mentions planning artifact gate`
-- `test that workflow.md [workflow-state:no_task] asks for task-creation consent`
+The bundled native workflow is tested against this contract, not exact policy
+text in the independently pinned marketplace submodule. Retain external
+phase/step/marker compatibility tests. Non-native selected workflows and
+user-modified files retain the ordinary update conflict protection; a skipped
+conflict has not adopted the new policy. No forced overwrite or silent workflow
+switch establishes consistency.
+
+Generation/loading tests establish real prompt plumbing, not model behavior.
+Round-one acceptance covers generation, actual prompt loading, initialization,
+update, and customization protection on all five hosts, plus observed model
+scenarios on one available primary host. Record that host's consultation,
+unresolved-design, authorized-execution, local-repair, material-change, and
+fresh-session evidence separately. Other hosts' model behavior is follow-up.
 
 ---
 
@@ -342,10 +387,10 @@ rely on categorical breadcrumb invisibility inside sub-agents.
 | `inject-subagent-context` (`implement.jsonl`/`check.jsonl` + task artifact injection) | ❌ | ✅ | ❌ | ❌ |
 | Pull-based prelude (`shared.ts:buildPullBasedPrelude`) | N/A | N/A | ✅ | fallback |
 
-Hook-inject platforms: claude, cursor, codebuddy, droid, kiro (`agentSpawn`), opencode (JS plugin).
-Pull-prelude platforms: codex, gemini, qoder, copilot.
-Extension-backed platforms: pi.
-Hookless: kilo, antigravity, devin.
+Current five-host paths: Claude Code and Cursor use shared hooks; Codex uses
+native hooks with child-side pull fallback; Pi uses its extension; dsh loads
+shared skills and higher-priority private entry skills and runs inline.
+Historical retired-host mechanics above do not expand this delivery scope.
 
 **Implication**: sub-agent-required guidance must still be propagated through
 `inject-subagent-context` for hook-inject platforms, `buildPullBasedPrelude` for

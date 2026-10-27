@@ -193,7 +193,7 @@ describe("shared-hooks capability table", () => {
     expect(content).toContain("Task context order");
     expect(content).toContain("jsonl entries -> `prd.md`");
     expect(content).toContain(
-      "Lightweight task can request start review with PRD-only",
+      "Lightweight task can use a confirmed PRD-only plan",
     );
     expect(content).toContain("complex task must add");
     expect(content).not.toContain("Status: READY");

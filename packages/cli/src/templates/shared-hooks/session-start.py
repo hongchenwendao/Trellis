@@ -391,9 +391,9 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
     if not active.task_path:
         return (
             "Status: NO ACTIVE TASK\n"
-            "Next-Action: Classify the current turn before creating any Trellis task. "
-            "Simple conversation / small task asks only whether this turn should create a Trellis task. "
-            "Complex task asks whether task creation and planning are allowed."
+            "Next-Action: Classify the current request. Answer consultation and read-only analysis directly. "
+            "For development, use an identified existing task or obtain missing task-creation consent. "
+            "Task creation alone does not authorize implementation."
         )
 
     task_ref = active.task_path
@@ -401,8 +401,8 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
     if active.stale or not task_dir.is_dir():
         return (
             f"Status: STALE POINTER\nTask: {task_ref}\n"
-            f"Next-Action: Run `python3 ./.trellis/scripts/task.py finish` to clear the stale pointer, "
-            "then ask the user what to work on next."
+            f"Next-Action: Identify the intended original task before clearing the stale pointer; "
+            "do not infer a new task or execution grant."
         )
 
     task_json_path = task_dir / "task.json"
@@ -425,7 +425,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Status: COMPLETED\nTask: {task_title}\n"
             f"Present: {present_line}\n"
-            "Next-Action: Run `/trellis:finish-work`. If the working tree is dirty, return to Phase 3.4 first."
+            "Next-Action: Reconcile the latest instructions and separate commit/archive authority before wrap-up; completed status alone grants neither."
         )
 
     has_prd = (task_dir / "prd.md").is_file()
@@ -442,7 +442,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Status: PLANNING\nTask: {task_title}\n"
             f"Present: {present_line}\n"
-            "Next-Action: Load `trellis-brainstorm` and write `prd.md`. Stay in planning."
+            "Next-Action: Answer read-only turns directly. For development, load `trellis-brainstorm` and write `prd.md`; recover the applicable plan and authority before execution."
         )
 
     if task_status == "planning":
@@ -456,23 +456,23 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         next_bits: list[str] = []
         if missing_complex:
             next_bits.append(
-                "Lightweight task can request start review with PRD-only; "
+                "Lightweight task can use a confirmed PRD-only plan; "
                 f"complex task must add {', '.join(missing_complex)} before start"
             )
         else:
-            next_bits.append("Planning artifacts are present; ask for review before `task.py start`")
+            next_bits.append("Planning artifacts are present; reconcile plan confirmation and execution grant before `task.py start`")
         if not jsonl_ready:
             next_bits.append("curate `implement.jsonl` and `check.jsonl` before sub-agent mode start")
         return (
             f"Status: PLANNING\nTask: {task_title}\n"
             f"Present: {present_line}\n"
-            f"Next-Action: {'; '.join(next_bits)}. Do not enter implementation until the user confirms start."
+            f"Next-Action: {'; '.join(next_bits)}. Reuse a valid existing grant; ask only for missing material authority."
         )
 
     return (
         f"Status: {str(task_status).upper()}\nTask: {task_title}\n"
         f"Present: {present_line}\n"
-        "Next-Action: Follow the matching per-turn workflow-state. "
+        "Next-Action: Classify the turn; answer read-only requests directly. For development, reconcile confirmed plan, execution grant, latest restrictions, and checkpoint; status is not authority. Follow the matching per-turn workflow-state. "
         "Implementation/check context order is jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`."
     )
 

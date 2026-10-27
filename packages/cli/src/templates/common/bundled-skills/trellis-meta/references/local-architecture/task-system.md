@@ -2,6 +2,8 @@
 
 The Trellis task system is stored entirely under `.trellis/tasks/` in the user project. Each task is a directory containing requirements, context, research, state, and relationship information.
 
+Keep a brief recoverable note of the applicable plan, execution scope, prohibited operations, and next action. Update it when a key decision, scope, or authorization changes; ordinary technical choices and local repairs need no approval entry. On resumption, reconcile that note with latest user instructions and actual permissions. `task.json.status` tracks progress, not authority.
+
 ## Task Directory Structure
 
 ```text

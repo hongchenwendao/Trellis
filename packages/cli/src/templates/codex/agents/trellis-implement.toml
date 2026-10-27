@@ -26,6 +26,7 @@ Trellis Context Loading Protocol:
 Rules:
 - Read before write. Follow `.trellis/spec/` guidance relevant to the task.
 - Keep changes focused on the requested scope.
+- Reconcile the confirmed plan and execution grant with latest restrictions. Resolve local technical choices within the agreed contract; report material changes to the main session while continuing independent work.
 - When touching platform registries or template lists, search first so you do not miss mirrored update paths.
 - If you modify `.trellis/scripts/`, keep `packages/cli/src/templates/trellis/scripts/` in sync.
 - Do not make destructive git changes unless explicitly asked.

@@ -7,9 +7,9 @@ description: "Guides collaborative requirements discovery before implementation.
 
 ## Non-Negotiable Planning Contract
 
-A request to build, implement, fix, refactor, or "go ahead" is not approval to leave planning. Task-creation consent is also not implementation approval.
+A request to create a task, confirmation of a plan, and authorization to implement are distinct. Read the applicable request and task history: an explicit request may confirm an existing plan and grant execution together. A plan newly proposed by the AI is not thereby confirmed.
 
-For every non-trivial task, the user must respond at least once after the initial request before implementation begins. If no clarification is needed, that response must approve the final planning summary described below.
+Do not require a later message solely because planning and execution are different phases. Ask only for an unresolved consequential decision or missing execution authority.
 
 While any user-owned product, scope, UX, compatibility, risk, or acceptance decision remains unresolved, end the turn with exactly one highest-value question. Do not edit product code, dispatch implementation, or run `task.py start`.
 
@@ -29,7 +29,7 @@ Use this skill during Phase 1 planning to turn the user's request into clear req
 
 ## Preconditions
 
-Use this skill only after task-creation consent has been given and the user is ready to enter Trellis planning.
+Use this skill for a requested development task when task creation was requested or consented to. Answer standalone read-only requests directly, including while a task is active.
 
 If no task exists yet, create one:
 
@@ -57,8 +57,7 @@ Use a concise title from the user's request. Both the title and `--description` 
 5. After each user answer, update `prd.md`, recompute the decision inventory, and repeat from step 2.
 6. When no user-owned decision remains, create or update `design.md` and `implement.md` for complex tasks.
 7. Run the requirement convergence gate, then the PRD convergence pass.
-8. Present the final planning summary and stop. Do not run `task.py start` or edit product code in the same turn.
-9. Only a subsequent user message that explicitly approves the latest planning summary authorizes `task.py start` and implementation. If the artifacts change materially after approval, repeat the final review.
+8. Present the planning summary for any unresolved key design or acceptance decision. Once the applicable plan is confirmed and execution is authorized, run `task.py start` and proceed through implementation, tests, and local repair without a phase-boundary approval request. If the plan changes materially, pause only the affected work and seek the replacement decision.
 
 Do not invent a project-specific product/spec hierarchy. If the repository already has product, domain, or spec docs, use them. If it does not, proceed with the evidence that exists.
 
@@ -77,9 +76,9 @@ Do not ask process questions such as whether to search, inspect files, or contin
 
 Recommendations are not default selections. Never choose a recommended product decision on the user's behalf merely because the user asked for implementation.
 
-Do not manufacture clarification questions when the request and repository evidence already resolve every decision. In that case, proceed directly to the final planning summary, which still requires a subsequent explicit approval.
+Do not manufacture clarification questions when the request and repository evidence already resolve every decision. If the user already confirmed the applicable plan and authorized execution, proceed; otherwise present the plan and ask only for the missing confirmation or grant.
 
-The final review is a required phase-transition gate, not a prohibited process question. Task-creation consent, the initial implementation request, and approval given before the latest final summary do not satisfy this gate.
+Task-creation consent alone never grants execution. Do not discard an applicable plan confirmation or execution grant merely because it preceded the current summary; reconcile it with any material changes and latest restrictions.
 
 ## Thinking Framework: First Principles Analysis
 
@@ -135,9 +134,9 @@ Before final review, verify all of the following:
 - blocking open questions are empty
 - technical unknowns are researched or explicitly deferred without changing MVP behavior
 
-Lightweight tasks may omit `design.md` and `implement.md`; they may not skip evidence inspection, requirement convergence, final review, or fresh implementation approval.
+Lightweight tasks may omit `design.md` and `implement.md`; they still need evidence inspection, requirement convergence, an applicable confirmed plan, and execution authorization before implementation.
 
-The final planning summary must show Goal, In Scope, Out of Scope, Acceptance Criteria, Key Decisions, relevant Risks or Deferred Items, and artifact status.
+When presenting a plan for confirmation, show Goal, In Scope, Out of Scope, Acceptance Criteria, Key Decisions, and relevant Risks or Deferred Items. Keep authority notes brief: applicable plan, execution scope, prohibited operations, next step. Update them only for material decision, scope, or authorization changes.
 
 ## Artifact Rules
 
@@ -163,7 +162,7 @@ The final planning summary must show Goal, In Scope, Out of Scope, Acceptance Cr
 - ordered implementation checklist
 - validation commands
 - risky files or rollback points
-- follow-up checks before `task.py start`
+- affected checks and continuation after `task.py start`
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
@@ -194,7 +193,6 @@ Before declaring planning ready:
 - Blocking open questions are empty.
 - Complex tasks have `design.md` and `implement.md`.
 - Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready.
-- The latest final planning summary has been presented to the user.
-- In a subsequent message, the user explicitly approved that summary for implementation.
+- The applicable plan is confirmed and implementation is authorized for its scope, possibly in the current request when referring to an existing plan.
 
-Do not start implementation merely because the user originally asked for implementation.
+Do not infer authorization from task status or artifact presence. Resolve local technical choices within the confirmed goal, interface, key design, acceptance, and scope; a material change needs a targeted replacement decision.

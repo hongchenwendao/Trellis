@@ -1,0 +1,4 @@
+{"file":".trellis/spec/cli/backend/workflow-state-contract.md","reason":"Check changed workflow invariants alongside unchanged marker, lifecycle, identity and injection safety contracts."}
+{"file":".trellis/spec/cli/backend/quality-guidelines.md","reason":"Audit all affected entry paths while preserving scope and integration quality."}
+{"file":".trellis/spec/cli/backend/filesystem-safety.md","reason":"Verify user customization protection and that unrelated pre-existing work is not overwritten."}
+{"file":".trellis/spec/cli/unit-test/integration-patterns.md","reason":"Validate real generation, hooks and update behavior; distinguish these from native-host model trials."}

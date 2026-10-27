@@ -1,7 +1,14 @@
 /** Retained host decisions in the shipped Python runtime, including shell identity. */
 import { describe, expect, it } from "vitest";
 import { execFileSync, spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import { createRequire } from "node:module";
 import path from "node:path";
+import vm from "node:vm";
+import ts from "typescript";
+import { collectPiTemplates } from "../../src/configurators/pi.js";
+import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
 
 const repoRoot = path.resolve(__dirname, "../../../..");
 const scripts = path.join(
@@ -21,6 +28,70 @@ function hasPython(): boolean {
 const describeFn = hasPython() ? describe : describe.skip;
 
 describeFn("five-platform Python runtime", () => {
+  it("loads Pi's generated extension callback with the packaged workflow and real project files", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-pi-runtime-"));
+    try {
+      fs.mkdirSync(path.join(root, ".trellis"), { recursive: true });
+      fs.writeFileSync(
+        path.join(root, ".trellis", "workflow.md"),
+        workflowMdTemplate,
+      );
+      for (const [relative, content] of collectPiTemplates()) {
+        const target = path.join(root, relative);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content);
+      }
+      const generated = fs.readFileSync(
+        path.join(root, ".pi/extensions/trellis/index.ts"),
+        "utf-8",
+      );
+      const js = ts.transpileModule(generated, {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2022,
+          esModuleInterop: true,
+        },
+      }).outputText;
+      const moduleObject: { exports: Record<string, unknown> } = {
+        exports: {},
+      };
+      const sandboxProcess = Object.create(process) as NodeJS.Process;
+      Object.defineProperty(sandboxProcess, "cwd", { value: () => root });
+      Object.defineProperty(sandboxProcess, "env", {
+        value: { ...process.env, TRELLIS_CONTEXT_ID: "pi-fixture" },
+      });
+      vm.runInNewContext(js, {
+        Buffer,
+        console,
+        exports: moduleObject.exports,
+        module: moduleObject,
+        process: sandboxProcess,
+        require: createRequire(import.meta.url),
+      });
+      const extension = moduleObject.exports.default as (pi: {
+        on: (
+          name: string,
+          callback: (event: unknown, ctx: unknown) => unknown,
+        ) => void;
+      }) => void;
+      const handlers = new Map<
+        string,
+        (event: unknown, ctx: unknown) => unknown
+      >();
+      extension({ on: (name, callback) => handlers.set(name, callback) });
+      const beforeStart = handlers.get("before_agent_start");
+      expect(beforeStart).toBeDefined();
+      const result = beforeStart?.(
+        { type: "before_agent_start", systemPrompt: "BASE" },
+        { cwd: root, sessionManager: { getSessionId: () => "pi-fixture" } },
+      ) as { systemPrompt: string; message?: { content: string } };
+      expect(result.systemPrompt).toContain("BASE");
+      expect(result.message?.content).toContain("<workflow-state>");
+      expect(result.message?.content).toContain("Answer consultation");
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
   it("keeps DSH identity precedence and Claude/Codex/Cursor shell identities", () => {
     const code = `
 import os

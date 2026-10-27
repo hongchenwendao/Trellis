@@ -1,0 +1,4 @@
+{"file":".trellis/spec/cli/backend/workflow-state-contract.md","reason":"Preserve parser, lifecycle and context contracts; explicitly revise obsolete behavioral invariants to the user-approved round-one contract."}
+{"file":".trellis/spec/cli/backend/filesystem-safety.md","reason":"Protect prior dirty work and user-customized generated files; apply only owned hunks and preserve update conflict handling."}
+{"file":".trellis/spec/cli/backend/configurator-shared.md","reason":"Preserve shared template resolution, platform-specific wrappers and existing context loading surfaces."}
+{"file":".trellis/spec/cli/unit-test/conventions.md","reason":"Extend existing regression and integration suites using isolated fixtures rather than another evaluation framework."}

@@ -103,9 +103,9 @@ Skip this step if your change is confined to a single layer.
 
 ## Step 6: Report and Fix
 
-Report every violation you find. Then:
+Report every material finding you find. Then:
 
-- Mechanical and local (lint nit, missing type, wrong import, dead branch, failing assertion) → fix in place, then re-run project checks.
-- Design or judgment (naming a shared concept, moving a module boundary, changing a public interface, reassigning where behavior lives) → record the evidence and your recommendation, and stop. Do not rewrite it silently.
+- Within the confirmed goal, external behavior, interface, key design, acceptance, and authorized scope → fix directly, including technical judgments, then rerun affected checks.
+- A changed public contract, acceptance criterion, key design, scope, or permission → pause the affected work and report evidence, impact, attempts, and a recommended adjustment. Continue independent work. After confirmation, update the original task's superseded decision and affected steps.
 
-If a fix would touch files outside the current task's scope, say so and stop instead of widening the change.
+If a fix needs wider authority, do not widen it silently. Continue useful diagnosis when new evidence offers a next step; report an unchanged impasse rather than repeating the same failed approach.

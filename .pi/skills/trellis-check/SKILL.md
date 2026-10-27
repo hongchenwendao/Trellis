@@ -95,4 +95,9 @@ Skip this step if your change is confined to a single layer.
 
 ## Step 6: Report and Fix
 
-Report violations found and fix them directly. Re-run project checks after fixes.
+Report every material finding you find. Then:
+
+- Within the confirmed goal, external behavior, interface, key design, acceptance, and authorized scope → fix directly, including technical judgments, then rerun affected checks.
+- A changed public contract, acceptance criterion, key design, scope, or permission → pause the affected work and report evidence, impact, attempts, and a recommended adjustment. Continue independent work. After confirmation, update the original task's superseded decision and affected steps.
+
+If a fix needs wider authority, do not widen it silently. Continue useful diagnosis when new evidence offers a next step; report an unchanged impasse rather than repeating the same failed approach.

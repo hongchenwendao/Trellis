@@ -15,6 +15,9 @@ describe("dsh collectDshTemplates", () => {
     const start = files.get(".dsh/skills/trellis-start/SKILL.md");
     expect(start).toContain("--platform dsh");
     expect(start).toContain("name: trellis-start");
+    expect(start).toContain("2.2 check, or 3.3 spec update");
+    expect(start).toContain("--step <X.Y> --platform dsh");
+    expect(start).not.toContain("--step 2.1 --platform dsh");
   });
 
   it("renders CMD_REF as bare trellis-<name> skill references in entry skills", () => {
@@ -23,6 +26,13 @@ describe("dsh collectDshTemplates", () => {
     // `{{CMD_REF:finish-work}}` → `` `trellis-finish-work` `` (dsh loads
     // skills by name through its skill-loader tool)
     expect(finish).toContain("`trellis-finish-work`");
+    expect(finish).toContain("no uncommitted implementation work, using Step 2's dirty-path classification");
+    expect(finish).toContain("exclude `.trellis/tasks/` and `.trellis/workspace/` bookkeeping");
+    expect(finish).toContain("a no-code task needs no artificial work commit");
+    expect(finish).toContain("any automatic Git commits enabled by configuration");
+    expect(finish).toContain("With `session_auto_commit` enabled");
+    expect(finish).toContain("use `-` when there were no work commits");
+    expect(finish).toContain("do not start this command");
   });
 
   it("writes workflow + bundled skills to the shared .agents/skills/ root only", () => {

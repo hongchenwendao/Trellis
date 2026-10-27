@@ -6869,14 +6869,17 @@ print(len(entries))
     return readFileSync(templatePath, "utf-8");
   }
 
-  it("[workflow-state-r1] template workflow.md [workflow-state:in_progress] mentions commit (Phase 3.4)", () => {
+  it("[workflow-state-r1] template workflow.md keeps conditional commit boundary reachable", () => {
     const wf = templateWorkflowMd();
     const match = wf.match(
       /\[workflow-state:in_progress\]([\s\S]*?)\[\/workflow-state:in_progress\]/,
     );
     expect(match).toBeTruthy();
     const body = match?.[1] ?? "";
-    expect(body).toMatch(/commit \(Phase 3\.4\)/i);
+    expect(body).toContain(
+      "Commit task work only when needed and authorized (Phase 3.4).",
+    );
+    expect(body).toContain("alone is not permission");
   });
 
   it("[issue-237] all implement/check agent templates contain recursion guards", () => {
@@ -6983,6 +6986,19 @@ print(len(entries))
     expect(body).toContain(
       "curate `implement.jsonl` and `check.jsonl` as spec/research manifests before start",
     );
+    expect(body).toContain("execution grant");
+    expect(body).toContain("answer read-only requests directly");
+  });
+
+  it("[workflow-autonomy] template distinguishes consultation, plan, execution, and local repair", () => {
+    const wf = templateWorkflowMd();
+    const noTask = wf.match(/\[workflow-state:no_task\]([\s\S]*?)\[\/workflow-state:no_task\]/)?.[1] ?? "";
+    const inProgress = wf.match(/\[workflow-state:in_progress\]([\s\S]*?)\[\/workflow-state:in_progress\]/)?.[1] ?? "";
+    expect(noTask).toContain("read-only analysis directly");
+    expect(noTask).toContain("Creation alone does not confirm a plan or authorize implementation");
+    expect(inProgress).toContain("Continue through checks and local repair without renewed approval");
+    expect(inProgress).toContain("pause only the affected work");
+    expect(inProgress).toContain("Diagnose from new evidence, not a fixed retry count");
   });
 
   it("[#292] workflow and brainstorm templates treat seed-only jsonl as not planning-ready", () => {

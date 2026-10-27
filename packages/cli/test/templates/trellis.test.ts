@@ -129,7 +129,7 @@ describe("trellis template constants", () => {
     expect(workflowMdTemplate).toContain("#");
   });
 
-  it("fork workflow keeps the native workflow's phases, steps, and breadcrumb contract", () => {
+  it("bundled workflow keeps marketplace-native phase and step identifiers without inheriting its policy text", () => {
     const repoRoot = fs.existsSync(path.join(process.cwd(), "marketplace"))
       ? process.cwd()
       : path.resolve(process.cwd(), "../..");
@@ -139,7 +139,7 @@ describe("trellis template constants", () => {
     );
     const stepHeadings = (content: string): string[] =>
       [...content.matchAll(/^#### ([123]\.\d+)\b.*$/gm)].map(
-        (match) => match[0],
+        (match) => match[1],
       );
     const phaseHeadings = (content: string): string[] =>
       [...content.matchAll(/^## Phase [123]:.*$/gm)].map((match) => match[0]);
@@ -164,10 +164,13 @@ describe("trellis template constants", () => {
       "in_progress-inline",
       "completed",
     ]) {
-      expect(breadcrumb(workflowMdTemplate, status)).toBe(
-        breadcrumb(marketplaceNative, status),
-      );
+      expect(breadcrumb(workflowMdTemplate, status), `${status} is parseable`).toBeDefined();
+      expect(breadcrumb(marketplaceNative, status), `${status} remains format-compatible`).toBeDefined();
     }
+    expect(breadcrumb(workflowMdTemplate, "no_task")).toContain("Answer consultation");
+    expect(breadcrumb(workflowMdTemplate, "planning")).toContain("execution grant");
+    expect(breadcrumb(workflowMdTemplate, "in_progress")).toContain("alone is not permission");
+    expect(breadcrumb(workflowMdTemplate, "in_progress-inline")).toContain("alone is not permission");
   });
 
   it("marketplace TDD workflow planning breadcrumbs include behavior gates", () => {
@@ -322,6 +325,37 @@ describe("trellis template constants", () => {
     expect(taskError).toContain("Do not create or activate another task");
     expect(taskError).toContain("repair its task.json");
     expect(taskError).toContain("valid JSON object with a non-empty status");
+  });
+
+  it("keeps commit and archive conditional in both phase index and detailed steps", () => {
+    const inProgress = workflowStateBreadcrumb("in_progress");
+    const inline = workflowStateBreadcrumb("in_progress-inline");
+    for (const block of [inProgress, inline]) {
+      expect(block).toContain("archive/journal writes plus enabled auto-commits are authorized");
+      expect(block).toContain("no-code tasks need no work commit");
+      expect(block).toContain("keep the task resumable");
+    }
+    expect(workflowMdTemplate).toContain("- 3.4 Commit changes `[conditional · once]`");
+    expect(workflowMdTemplate).toContain("#### 3.4 Commit changes `[conditional · once]`");
+    expect(workflowMdTemplate).toContain("#### 3.5 Wrap-up `[conditional · once]`");
+    expect(stepSection("3.4")).toContain("exit to manual mode without entering wrap-up");
+    expect(stepSection("3.5")).toContain("leave the original task available for continuation");
+    expect(stepSection("3.5")).toContain("there is none to commit");
+    expect(stepSection("3.5")).not.toContain("Only after work commits exist");
+  });
+
+  it("requires a preferred material-plan adjustment, not an unranked option list", () => {
+    for (const status of ["in_progress", "in_progress-inline"]) {
+      const block = workflowStateBreadcrumb(status);
+      expect(block).toContain("one recommended adjustment with its decisive tradeoff");
+      expect(block).toContain("not just a list of options");
+    }
+    expect(stepSection("2.3")).toContain(
+      "one recommended adjustment with the decisive tradeoff instead of merely listing options",
+    );
+    expect(workflowMdTemplate).toContain(
+      "If execution falsifies a key premise, pause affected work and give one recommended adjustment with its decisive tradeoff, not just options.",
+    );
   });
 
   it("gitignoreTemplate contains ignore patterns", () => {

@@ -48,7 +48,7 @@ The supervising main session owns commits. Report what changed; do not commit on
 - Follow existing code patterns
 - Don't add unnecessary abstractions
 - Only do what the PRD asks for; no speculative scope expansion
-- Surface uncertainty back to the channel rather than guessing
+- Resolve local technical choices within the confirmed goal, external behavior, interface, key design, acceptance, and authorized scope. Surface a material change or missing authority with evidence and a recommendation; continue independent work.
 
 ## Report Format
 

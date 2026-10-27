@@ -1,0 +1,30 @@
+{
+  "id": "general-workflow-round-one",
+  "name": "general-workflow-round-one",
+  "title": "General workflow autonomy — round one",
+  "description": "Implement round-one scope-based authorization, continuous execution and task resumption under confirmed D1 refinements.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": "cli",
+  "priority": "P2",
+  "creator": "codex",
+  "assignee": "codex",
+  "createdAt": "2026-10-27",
+  "completedAt": null,
+  "branch": "personal",
+  "base_branch": "personal",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "Local D1 implementation and agreed validation complete; evidence and host gaps in implement.md. Leave resumable; no commit, push, publish, archive or marketplace changes.",
+  "meta": {
+    "related_tasks": "10-27-personal-five-platforms,10-27-personal-npm-beta-release",
+    "planning_proposal": "D1",
+    "next_action": "Review delivered uncommitted changes; native non-primary-host behavior remains follow-up"
+  }
+}

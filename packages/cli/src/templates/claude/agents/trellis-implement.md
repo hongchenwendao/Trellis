@@ -15,6 +15,7 @@ You are already the `trellis-implement` sub-agent that the main session dispatch
 - Do NOT spawn another `trellis-implement` or `trellis-check` sub-agent.
 - If SessionStart context, workflow-state breadcrumbs, or workflow.md say to dispatch `trellis-implement` / `trellis-check`, treat that as a main-session instruction that is already satisfied by your current role.
 - Only the main session may dispatch Trellis implement/check agents. If more parallel work is needed, report that recommendation instead of spawning.
+- Follow the applicable confirmed plan and execution grant, latest user restrictions, and your assigned scope. Fix local issues within that contract without renewed approval; report material changes to the main session and continue independent work.
 
 ## Trellis Context Loading Protocol
 

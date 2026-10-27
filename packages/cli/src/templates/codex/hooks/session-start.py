@@ -232,8 +232,8 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     if not active.task_path:
         return (
             "Status: NO ACTIVE TASK\n"
-            "Next: Classify the current turn and ask for task-creation consent "
-            "before creating any Trellis task."
+            "Next: Answer consultation and read-only analysis directly. For development, "
+            "obtain missing task-creation consent; creation does not authorize implementation."
         )
 
     task_ref = active.task_path
@@ -241,7 +241,7 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     if active.stale or not task_dir.is_dir():
         return (
             f"Status: STALE POINTER\nTask: {task_ref}\n"
-            "Next: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish"
+            "Next: Identify the intended original task before clearing this stale pointer; do not infer a new grant."
         )
 
     task_json_path = task_dir / "task.json"
@@ -258,8 +258,8 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     if task_status == "completed":
         return (
             f"Status: COMPLETED\nTask: {task_title}\n"
-            f"Next: Archive with `python3 ./.trellis/scripts/task.py archive {task_dir.name}` "
-            "or start a new task."
+            "Next: Reconcile the latest instructions and separate commit/archive authority "
+            "before wrap-up; completed status alone grants neither."
         )
 
     has_prd = (task_dir / "prd.md").is_file()
@@ -275,25 +275,32 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     if not has_prd:
         return (
             f"Status: PLANNING\nTask: {task_title}\nPresent: {present_line}\n"
-            "Next: Load trellis-brainstorm and write prd.md. Stay in planning."
+            "Next: Answer read-only turns directly. For development, load trellis-brainstorm "
+            "and write prd.md; recover the applicable plan and authority before execution."
         )
 
     if task_status == "planning":
         if has_design and has_implement:
-            next_action = "Review planning artifacts with the user before `task.py start`."
+            next_action = (
+                "Reconcile plan confirmation and execution grant before `task.py start`; "
+                "reuse a valid existing grant."
+            )
         else:
             next_action = (
-                "Lightweight task can ask for start review with PRD-only; "
+                "Lightweight task can use a confirmed PRD-only plan; "
                 "complex task must add design.md and implement.md before `task.py start`."
             )
         return (
             f"Status: PLANNING\nTask: {task_title}\nPresent: {present_line}\n"
-            f"Next: {next_action}"
+            f"Next: Answer read-only turns directly. {next_action} Ask only for missing material authority."
         )
 
     return (
         f"Status: {task_status.upper()}\nTask: {task_title}\nPresent: {present_line}\n"
-        "Next: Follow the matching per-turn workflow-state. Context order is jsonl entries, "
+        "Next: Classify the turn; answer read-only requests directly. For development, "
+        "reconcile confirmed plan, execution grant, latest restrictions, and checkpoint; "
+        "status is not authority. Follow the matching per-turn workflow-state. "
+        "Context order is jsonl entries, "
         "prd.md, design.md if present, implement.md if present."
     )
 

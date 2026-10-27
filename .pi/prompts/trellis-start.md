@@ -34,15 +34,18 @@ cat .trellis/spec/<package>/<layer>/index.md   # for each relevant layer
 Index files list the specific guideline docs to read when you actually start coding.
 
 ## Step 4: Decide next action
-From Step 1 you know the current task and status. Check the task directory:
+Classify the current request before routing by task status. Answer consultation, explanation, review, and read-only investigation directly, even when a development task is active. For development, read the task's scope, current decisions, execution grant, prohibited operations, and next step; reconcile these with the latest user instruction and tool permissions. Status and artifact presence do not grant authority.
+
+Then check the task directory:
 
 - **Active task status `planning` + no `prd.md`** → Phase 1.1. Load the `trellis-brainstorm` skill.
-- **Active task status `planning` + `prd.md` exists** → stay in Phase 1. Lightweight tasks can be PRD-only; complex tasks need `design.md` + `implement.md`. Load the relevant Phase 1 step detail before `task.py start`.
-- **Active task status `in_progress`** → Phase 2 step 2.1. Load the step detail:
+- **Active task status `planning` + `prd.md` exists** → finish the applicable plan (PRD-only for lightweight work; `design.md` + `implement.md` for complex work). If plan confirmation and execution authorization are already established, proceed to `task.py start` without another ceremonial review.
+- **Active task status `in_progress`** → resume the recorded authorized checkpoint (for example 2.1 implementation, 2.2 check, or 3.3 spec update), not automatically 2.1. Load that step's detail:
   ```bash
-  python3 ./.trellis/scripts/get_context.py --mode phase --step 2.1 --platform pi
+  python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y> --platform pi
   ```
-- **No active task** → classify first. For simple conversation / small task, ask only whether this turn should create a Trellis task. For complex work, ask whether you may create a Trellis task and enter planning. If the user says no, skip Trellis for this session.
+- **Checks complete** → enter Phase 3.4 only if the task has work to commit and commit authorization exists. Enter finish-work only when no current-task work remains uncommitted and archive/journal writes plus any enabled auto-commits are authorized. Otherwise deliver the verified result and leave the task available for later continuation.
+- **No active task** → answer read-only requests directly. For development, use an explicitly identified existing task or obtain missing task-creation consent; creation, plan confirmation, and execution authorization are separate.
 
 ---
 

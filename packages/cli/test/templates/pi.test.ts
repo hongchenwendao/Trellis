@@ -182,7 +182,7 @@ function createMinimalTrellisRoot(): string {
     join(root, ".trellis", "workflow.md"),
     [
       "[workflow-state:no_task]",
-      "No active task. First classify the current turn and ask for task-creation consent before creating any Trellis task.",
+      "No active task. Answer read-only requests directly; obtain task-creation consent only when a development record is needed.",
       "[/workflow-state:no_task]",
       "",
     ].join("\n"),
