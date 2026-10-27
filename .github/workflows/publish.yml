@@ -17,6 +17,9 @@ concurrency:
 
 jobs:
   publish:
+    # This workflow is the upstream release path. It stays inert in forks:
+    # the personal fork publishes local tarballs instead of adding CI publishing.
+    if: github.repository == 'mindfold-ai/Trellis'
     runs-on: ubuntu-latest
     permissions:
       contents: read

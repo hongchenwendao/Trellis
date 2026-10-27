@@ -1,111 +1,27 @@
 # Platform File Map
 
-This page lists common Trellis file locations in a user project by platform. Whether a platform directory exists in an actual project depends on which `trellis init --<platform>` commands the user ran.
+This page locates the five AI integrations supported by this Trellis fork. A user project contains only the directories selected by `moksha-trellis init`; older projects may also retain files from retired integrations. Those files are not automatically removed by `moksha-trellis update`.
 
-## Matrix
-
-| Platform | CLI flag | Main directory | Skill directory | Agent directory | Hooks/extensions |
+| Platform | Init flag | Main directory | Skill directory | Agent directory | Hooks/extensions |
 | --- | --- | --- | --- | --- | --- |
 | Claude Code | `--claude` | `.claude/` | `.claude/skills/` | `.claude/agents/` | `.claude/hooks/` + `.claude/settings.json` |
-| Cursor | `--cursor` | `.cursor/` | `.cursor/skills/` | `.cursor/agents/` | `.cursor/hooks.json` + `.cursor/hooks/` |
-| OpenCode | `--opencode` | `.opencode/` | `.opencode/skills/` | `.opencode/agents/` | `.opencode/plugins/` |
 | Codex | `--codex` | `.codex/` | `.agents/skills/` | `.codex/agents/` | `.codex/hooks/` + `.codex/hooks.json` |
-| Kilo | `--kilo` | `.kilocode/` | `.kilocode/skills/` | Usually none | `.kilocode/workflows/` |
-| Kiro | `--kiro` | `.kiro/` | `.kiro/skills/` | `.kiro/agents/` | `.kiro/hooks/` |
-| Gemini CLI | `--gemini` | `.gemini/` | `.agents/skills/` | `.gemini/agents/` | `.gemini/settings.json` + `.gemini/hooks/` |
-| Antigravity | `--antigravity` | `.agent/` | `.agent/skills/` | Usually none | `.agent/workflows/` |
-| Devin | `--devin` | `.devin/` | `.devin/skills/` | Usually none | `.devin/workflows/` |
-| Qoder | `--qoder` | `.qoder/` | `.qoder/skills/` | `.qoder/agents/` | `.qoder/hooks/` + `.qoder/settings.json` |
-| CodeBuddy | `--codebuddy` | `.codebuddy/` | `.codebuddy/skills/` | `.codebuddy/agents/` | `.codebuddy/hooks/` + `.codebuddy/settings.json` |
-| GitHub Copilot | `--copilot` | `.github/` | `.github/skills/` | `.github/agents/` | `.github/copilot/hooks/` + prompts |
-| Factory Droid | `--droid` | `.factory/` | `.factory/skills/` | `.factory/droids/` | `.factory/hooks/` + settings |
-| Pi Agent | `--pi` | `.pi/` | `.agents/skills/` | `.pi/agents/` | `.pi/extensions/trellis/` (native `trellis_subagent` tool) + `.pi/settings.json` |
-| Trae IDE | `--trae` | `.trae/` | `.trae/skills/` | `.trae/agents/` | `.trae/hooks/` + `.trae/hooks.json` |
-| Reasonix | `--reasonix` | `.reasonix/` | `.reasonix/skills/` | None — sub-agents are skills with `runAs: subagent` frontmatter | None |
-| ZCode | `--zcode` | `.zcode/` | `.zcode/skills/` | `.zcode/agents/` | `.zcode/hooks/` + `.zcode/config.json` (SessionStart + UserPromptSubmit + PreToolUse Agent/Task); sub-agents use hook-injected context |
-| Grok Build | `--grok` | `.grok/` | `.grok/skills/` | `.grok/agents/` | pull-based prelude (no hooks; flat `.grok/commands/trellis-*.md`) |
-| Kimi Code | `--kimi` | `.kimi-code/` | `.agents/skills/` (shared) + `.kimi-code/skills/` | `.kimi-code/agents/` (custom sub-agents; same prompts also ship as skills) | None (pull-based prelude; no project hooks/settings) |
-| Snow CLI | `--snow` | `.snow/` | `.snow/skills/` | `.snow/agents/` (auto-discovered; primary path) | class-1: auto inject + project agents + `beforeSubAgentStart` (`.snow/hooks/` `session`/`user`/`subagent` modes -> `additionalContext` JSON); no legacy sub-agent JSON; commands `.snow/commands/trellis-*.json` |
+| Cursor | `--cursor` | `.cursor/` | `.cursor/skills/` | `.cursor/agents/` | `.cursor/hooks.json` + `.cursor/hooks/` |
+| Pi Agent | `--pi` | `.pi/` | `.agents/skills/` | `.pi/agents/` | `.pi/extensions/trellis/` + `.pi/settings.json` |
+| DeepSeek Harness (dsh) | `--dsh` | `.dsh/` | `.agents/skills/` + `.dsh/skills/` entry skills | None; implement/check run inline | None; context is loaded by skills |
 
-## Capability Groups
+Pi Agent is not Oh My Pi: `.pi/` is the retained extension-backed integration. Codex uses native sub-agent context injection by default and can opt into inline mode with `codex.dispatch_mode: inline`; dsh always uses the inline workflow.
 
-### Trellis Sub-Agent Support
+## Where to change behavior
 
-These platforms usually have `trellis-research`, `trellis-implement`, and `trellis-check` files:
+- **Sub-agent definitions:** Claude Code, Codex, Cursor, and Pi Agent have `trellis-research`, `trellis-implement`, and `trellis-check` files in their agent directories. Pi's native `trellis_subagent` tool is implemented in `.pi/extensions/trellis/index.ts`; edit the extension for dispatch or progress behavior.
+- **Shared skills:** Codex, Pi Agent, and dsh use `.agents/skills/`. dsh additionally exposes start/continue/finish entry skills under `.dsh/skills/`. Do not assume every tool reads the shared directory.
+- **Main-session workflow:** `.trellis/workflow.md` is the local source of truth. For dsh and Codex inline mode, `trellis-before-dev` and `trellis-check` guide work in the main session.
+- **Channel workers:** `.trellis/agents/` and `moksha-trellis channel` are a separate runtime whose providers are Claude Code and Codex. Per-platform agent files do not configure channel workers.
 
-- Claude Code
-- Cursor
-- OpenCode
-- Codex
-- Kiro
-- Gemini CLI
-- Qoder
-- CodeBuddy
-- GitHub Copilot
-- Factory Droid
-- Pi Agent
-- Trae IDE
-- Reasonix (delivered as skills with `runAs: subagent` under `.reasonix/skills/`, not as a separate `agents/` directory)
-- ZCode
-- Grok Build (`.grok/agents/`; dispatch via `spawn_subagent` with `subagent_type`)
-- Kimi Code (`.kimi-code/agents/`; the same prompts are also delivered as skills under `.kimi-code/skills/`)
-- Snow CLI (`.snow/agents/`; auto-discovered project agents + class-1 hooks)
+## Decision rules
 
-When changing implementation/check/research behavior, look for the corresponding platform agent files first.
-
-### Native Trellis Sub-Agent Tool
-
-Some platforms expose a first-class tool that the host runtime understands. The model calls it like any other tool and the host renders progress cards, validates the agent name against `.<platform>/agents/`, and enforces dispatch modes.
-
-- Pi Agent — `trellis_subagent` tool, defined in `.pi/extensions/trellis/index.ts`. Supports `single` / `parallel` / `chain` dispatch modes and emits live `trellis-subagent-progress` events.
-
-When changing sub-agent dispatch behavior on these platforms, edit the extension file, **not** the agent markdown — the agent markdown defines responsibilities, but the host extension owns dispatch, validation, and progress rendering.
-
-### Main-Session Workflow Platforms
-
-These platforms rely more on workflows/skills to guide the main session:
-
-- Kilo
-- Antigravity
-- Devin
-
-When changing behavior, inspect workflows and skills first. Do not assume Trellis sub-agents exist.
-
-### Shared `.agents/skills/`
-
-Codex, Gemini CLI, Pi Agent, and Kimi Code write the shared `.agents/skills/` layer. Some tools that support agentskills.io can also read this directory. If the user wants multiple compatible tools to share one skill, consider `.agents/skills/` first, but do not assume every platform reads it. ZCode keeps Trellis-managed skills under `.zcode/skills/`.
-
-## Decision Rules When Modifying Platform Files
-
-1. User specified a platform: modify only that platform directory unless shared workflow/spec files must also change.
-2. User says "all platforms should do this": synchronize equivalent entry points platform by platform; do not modify only one directory.
-3. User only says "my AI": inspect the configuration directories that actually exist in the project and infer the current AI platform.
-4. User wants project rules: prefer `.trellis/spec/` or a project-local skill.
-5. User wants Trellis behavior: edit `.trellis/workflow.md` plus platform hooks/agents/skills/commands.
-
-## When Paths Differ
-
-Platform ecosystems change, and user projects may already be customized. If this table disagrees with local files, use the actual settings/config in the user project as authoritative:
-
-- Check the hook that settings registers.
-- Check the script that a command/prompt/workflow points to.
-- Judge behavior by the read rules currently written in the agent file.
-
-Do not delete a custom file just because it is not listed in this path table.
-
-### `.omp/` — Oh My Pi (OMP)
-
-Extension-backed platform. OMP native provider auto-discovers all subdirectories.
-
-```text
-.omp/
-├── commands/          # Slash commands (flat .md)
-├── skills/            # Auto-triggered skills (SKILL.md per dir)
-├── agents/            # Agent definitions (.md)
-└── extensions/
-    └── trellis/
-        └── index.ts   # Trellis extension (context injection)
-```
-
-No `settings.json` — OMP scans `.omp/` subdirectories automatically.
-No Python hooks — hook-equivalent behavior lives in the TypeScript extension.
+1. If the user names one platform, inspect its actual settings, agent, skill, hook, command, or extension files before editing. Change shared workflow/spec files too only when the behavior is shared.
+2. If the user requests a change across all configured platforms, synchronize equivalent entry points; editing one directory is not enough.
+3. For project rules, prefer `.trellis/spec/` or a project-local skill.
+4. If a path in this map disagrees with the user's project, follow the actual configured hook, command, and agent files. Preserve custom files and retired integration assets unless the user separately authorizes their removal.

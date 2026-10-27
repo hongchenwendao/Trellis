@@ -15,6 +15,10 @@ trellis platforms [--json]
 
 Behavior:
 
+- This personal fork reports only `claude-code`, `codex`, `cursor`, `pi` and
+  `dsh`. Retired directories and historical memory-reader platforms do not
+  expand this installation registry; see the five-platform contract in
+  [platform-integration.md](./platform-integration.md).
 - Reads `getConfiguredPlatforms(cwd)` (`configurators/index.ts`) to find every
   platform with at least one Trellis-owned template recorded under its private
   `configDir`. Native platform directories alone do not count. Template

@@ -1,6 +1,14 @@
 # Platform Integration Guide
 
-How to add support for a new AI CLI platform. The 21 currently registered are Claude Code, Cursor, OpenCode, Codex, Kilo, Kiro, Gemini CLI, Antigravity, Devin, Qoder, CodeBuddy, Copilot, Factory Droid, Pi, Reasonix, ZCode, Trae, OMP, Grok, Kimi, and Snow — `PLATFORM_IDS` in `configurators/index.ts` is the list that counts.
+This personal fork supports five installation platforms: Claude Code
+(`claude-code`), Codex (`codex`), Cursor (`cursor`), Pi Agent (`pi`, not `omp`),
+and DeepSeek Harness (`dsh`). `PLATFORM_IDS` in `configurators/index.ts` is
+the active list.
+
+This guide also preserves upstream integration patterns for reference.
+Sections describing other platforms are historical design knowledge, not
+active installation support. Keep shared workflow/task infrastructure and
+historical session readers separate from the installation registry.
 
 ---
 
@@ -17,7 +25,82 @@ Platform support uses a **centralized registry pattern** (similar to Turborepo's
 - **Shared utilities**: `src/utils/compare-versions.ts` — `compareVersions()` with full prerelease support (used by cli, update, migrations)
 - **Derived helpers**: `ALL_MANAGED_DIRS`, `getConfiguredPlatforms()`, etc. — consumed by update, init, hash tracking
 
-All lists (backup dirs, template dirs, platform detection, cleanup whitelist) are **derived from the registry automatically**. No scattered hardcoded lists.
+Active platform lists (backup dirs, template dirs, platform detection and
+cleanup whitelist) are **derived from the registry automatically**. The inert
+retired-ownership inventory described below is separate compatibility data.
+
+---
+
+## Scenario: Five-platform fork and existing retired assets
+
+### 1. Scope / Trigger
+
+This fork intentionally narrows active installation support. Changing the
+registry affects detection, updates, backups and removal, not just init choices.
+The inert inventory in `src/constants/retired-platform-paths.ts` preserves old
+ownership without retaining retired generators or install options.
+
+### 2. Signatures
+
+```text
+trellis init [--claude] [--codex] [--cursor] [--pi] [--dsh] [existing non-platform options]
+trellis platforms [--json]
+trellis update [existing update options]
+trellis uninstall [existing uninstall options]
+trellis ablate [existing ablate options]
+```
+
+### 3. Contracts
+
+- Active IDs are exactly `claude-code`, `codex`, `cursor`, `pi`, `dsh`.
+  `platforms --json` keeps its existing response shape and reports only active
+  retained adapters. Historical session readers have a separate platform list.
+- Mixed-project update writes retained/shared templates, preserves retired
+  exclusive files and known retired hash values, and explains the version scope.
+- Filter both migration endpoints for regular, orphaned and `safe-file-delete`
+  paths. Skip an entire retired-targeting item; keep historical manifests.
+- `.agents/skills` is shared, not retired-exclusive. Codex/Pi/dsh remain writers;
+  Pi's `.pi/skills` -> `.agents/skills` migration remains valid.
+- Preserve only known old Trellis ownership records, not every key under a
+  retired directory. Ordinary poisoned-manifest cleanup still protects user data.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Retained-only project | Existing init/update/removal behavior remains usable. |
+| Retained + retired Trellis assets | Update retained/shared content; leave retired assets unchanged. |
+| Pure-retired installation, including missing/empty hash manifest | Explain unsupported installation and stop update before writes. |
+| Unrelated native platform directory or user file | Do not infer Trellis ownership from a directory name alone. |
+| Removal with unsupported legacy ownership | Refuse before pruning ownership or applying a deletion plan. |
+| Dry run | Preserve project contents and ownership metadata. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: Codex and an old OpenCode adapter coexist; Codex updates, OpenCode
+  templates and recorded hashes remain unchanged.
+- Base: A fresh Pi install receives its native extension and shared skills;
+  no OMP integration is installed.
+- Bad: Removing registry entries makes old files look orphaned, then migration
+  cleanup silently deletes them or removal loses their ownership records.
+
+### 6. Tests Required
+
+Check exact-five registry/CLI/package inventories, all-five init/update and
+dsh integration, mixed and pure-retired ownership safety, polluted manifest
+cleanup, Pi migration, and overlapping Codex/Pi/dsh shared-skill byte parity.
+Keep Windows rendering, session identity and both Codex workflow modes covered.
+Fork documentation checks must read actual fork-owned README files; an empty
+upstream submodule is not documentation evidence.
+
+### 7. Wrong vs Correct
+
+Wrong: delete platform directories and registry rows, leaving old migrations
+and manifest pruning unrestricted.
+
+Correct: narrow all active entry points together, keep a non-generating legacy
+ownership inventory, filter migration targets and verify preserved data using
+real temporary projects. Keep historical tasks/specs/research/logs intact.
 
 ---
 

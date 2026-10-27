@@ -1,0 +1,6 @@
+{"file":".trellis/spec/cli/backend/release-process.md","reason":"Verify version lockstep, exact packed dependency, artifact-before-docs rule."}
+{"file":".trellis/spec/cli/backend/commands-upgrade.md","reason":"Verify upgrade prints the personal scope and single command."}
+{"file":".trellis/spec/cli/backend/directory-structure.md","reason":"Verify no stale official-scope identity outside historical records."}
+{"file":".trellis/spec/cli/backend/script-conventions.md","reason":"Verify the Python twin parity and no one-sided edits."}
+{"file":".trellis/spec/cli/backend/filesystem-safety.md","reason":"Verify artifact exclusions and out-of-tree test isolation."}
+{"file":".trellis/spec/cli/unit-test/integration-patterns.md","reason":"Verify real tarball install/init/update coverage, not fixtures."}

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/cli/backend/quality-guidelines.md","reason":"Validate final implementation against project quality requirements."}
+{"file":".trellis/spec/cli/backend/platform-integration.md","reason":"Check exact-five registry, runtime and generated asset consistency."}
+{"file":".trellis/spec/cli/backend/commands-update.md","reason":"Review mixed-project safety, migration filtering and retained-platform usability."}
+{"file":".trellis/spec/cli/backend/filesystem-safety.md","reason":"Review user data preservation and non-destructive legacy handling."}
+{"file":".trellis/spec/cli/unit-test/integration-patterns.md","reason":"Real init/update CLI coverage and temporary project isolation."}
+{"file":".trellis/spec/core/backend/index.md","reason":"Keep mem/channel capability boundaries separate from active install adapters."}

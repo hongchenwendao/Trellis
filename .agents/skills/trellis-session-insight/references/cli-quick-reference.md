@@ -1,6 +1,6 @@
-# `trellis mem` CLI Reference
+# `moksha-trellis mem` CLI Reference
 
-Full flag reference for the five subcommands. Pin this as the authoritative source — `trellis mem help` prints the same content at runtime, so anything here that drifts is a bug.
+Full flag reference for the five subcommands. Pin this as the authoritative source — `moksha-trellis mem help` prints the same content at runtime, so anything here that drifts is a bug.
 
 ## Subcommands
 
@@ -34,18 +34,18 @@ Full flag reference for the five subcommands. Pin this as the authoritative sour
 
 ```bash
 # What past sessions discussed "deadlock" anywhere on this machine?
-trellis mem search "deadlock" --global --limit 20
+moksha-trellis mem search "deadlock" --global --limit 20
 
 # Inside a specific session, surface the top 5 turns that mention "lock contention"
 # plus 2 turns of surrounding context.
-trellis mem context 5842592d --grep "lock contention" --turns 5 --around 2
+moksha-trellis mem context 5842592d --grep "lock contention" --turns 5 --around 2
 
 # Recover the brainstorm window for a session — useful when continuing a task
 # the user started a week ago.
-trellis mem extract 5842592d --phase brainstorm
+moksha-trellis mem extract 5842592d --phase brainstorm
 
 # List every project this machine has Trellis sessions for, with counts.
-trellis mem projects
+moksha-trellis mem projects
 ```
 
 ## Output shapes
@@ -55,12 +55,12 @@ trellis mem projects
 
 ## Caveats
 
-- **OpenCode adapter is a stub on `0.6.0-beta.*`.** When `--platform` resolves to OpenCode (or `all` and OpenCode would be included), `mem` prints a one-line "reader unavailable" notice and continues with the other platforms. Don't promise OpenCode coverage in your reply until the adapter ships.
+- **Memory readers are separate from `moksha-trellis init` adapters.** OpenCode, Grok, Devin CLI, and ZCode session logs remain searchable even though this fork no longer installs their Trellis platform integrations.
 - **`--platform devin` is Cognition Devin CLI** (`~/.local/share/devin/cli/sessions.db`). It is not `trellis init --devin` (Devin Desktop / Cascade) and not Factory Droid.
 - **`--phase` slicing depends on `task.py create` / `task.py start` invocations appearing in the recorded bash calls of the session.** Sessions where the user ran `task.py` from a different terminal — outside the recorded AI loop — will not have phase boundaries. `--phase all` is the safe fallback.
-- **`mem` indexes platform JSONL files directly.** If the user has cleared their Claude / Codex / Pi session storage, `mem` cannot recover what is no longer on disk.
+- **`mem` reads local platform session stores.** If a host's raw sessions have been cleared, `mem` cannot recover them.
 - **`mem` is read-only.** No remote sync, no edits to platform JSONL. Any write you do based on `mem` findings is your own follow-up call into the editing tools available to you.
 
 ## When you need more than this reference
 
-Run `trellis mem help` in the user's shell. The runtime help is authoritative and will be ahead of this reference during fast-moving beta releases.
+Run `moksha-trellis mem help` in the user's shell. The runtime help is authoritative and will be ahead of this reference during fast-moving beta releases.

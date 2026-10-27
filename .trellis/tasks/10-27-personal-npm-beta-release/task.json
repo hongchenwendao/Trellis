@@ -1,0 +1,28 @@
+{
+  "id": "personal-npm-beta-release",
+  "name": "personal-npm-beta-release",
+  "title": "Personal npm beta release for @mokshaall packages",
+  "description": "Prepare the first personal beta npm release of @mokshaall/trellis and @mokshaall/trellis-core with the single moksha-trellis command, using local-tarball publishing after the five-platform pruning task delivers.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": "cli",
+  "priority": "P2",
+  "creator": "zizai",
+  "assignee": "zizai",
+  "createdAt": "2026-10-27",
+  "completedAt": null,
+  "branch": "personal",
+  "base_branch": "personal",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "depends_on": "10-27-personal-five-platforms"
+  }
+}

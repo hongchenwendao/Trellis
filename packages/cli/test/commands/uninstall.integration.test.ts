@@ -29,7 +29,7 @@ vi.mock("node:child_process", () => ({
 import { init } from "../../src/commands/init.js";
 import { uninstall } from "../../src/commands/uninstall.js";
 import { DIR_NAMES } from "../../src/constants/paths.js";
-import { loadHashes } from "../../src/utils/template-hash.js";
+import { loadHashes, saveHashes } from "../../src/utils/template-hash.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const noop = () => {};
@@ -65,14 +65,46 @@ describe("uninstall() integration", () => {
 
   it("#2 errors when manifest is missing but .trellis/ exists", async () => {
     fs.mkdirSync(path.join(tmpDir, DIR_NAMES.WORKFLOW));
-    const exitSpy = vi
-      .spyOn(process, "exit")
-      .mockImplementation(((code?: number) => {
-        throw new Error(`process.exit(${code ?? 0})`);
-      }) as never);
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(((
+      code?: number,
+    ) => {
+      throw new Error(`process.exit(${code ?? 0})`);
+    }) as never);
 
     await expect(uninstall({ yes: true })).rejects.toThrow("process.exit(1)");
     expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it("refuses retired ownership before pruning or deleting anything", async () => {
+    await init({ yes: true, claude: true, force: true });
+    const retiredFile = path.join(tmpDir, ".opencode", "package.json");
+    fs.mkdirSync(path.dirname(retiredFile), { recursive: true });
+    fs.writeFileSync(retiredFile, "old OpenCode content\n");
+    const hashes = loadHashes(tmpDir);
+    hashes[".opencode/package.json"] = "original-retired-hash";
+    saveHashes(tmpDir, hashes);
+    const manifestBefore = fs.readFileSync(
+      path.join(tmpDir, ".trellis", ".template-hashes.json"),
+      "utf-8",
+    );
+    vi.spyOn(process, "exit").mockImplementation(((code?: number) => {
+      throw new Error(`process.exit(${code ?? 0})`);
+    }) as never);
+
+    await expect(uninstall({ yes: true })).rejects.toThrow("process.exit(1)");
+
+    expect(fs.readFileSync(retiredFile, "utf-8")).toBe(
+      "old OpenCode content\n",
+    );
+    expect(fs.existsSync(path.join(tmpDir, ".claude", "settings.json"))).toBe(
+      true,
+    );
+    expect(
+      fs.readFileSync(
+        path.join(tmpDir, ".trellis", ".template-hashes.json"),
+        "utf-8",
+      ),
+    ).toBe(manifestBefore);
   });
 
   it("#3 init → uninstall → project is clean", async () => {
@@ -201,26 +233,26 @@ describe("uninstall() integration", () => {
     expect(fs.existsSync(userHookDir)).toBe(true);
   });
 
-  it("#8a empty managed sub-dirs and root dir are pruned (kilo: no structured config)", async () => {
-    // Kilo has no hooks.json/settings.json/config.toml/package.json — every
-    // manifest file is opaque and gets deleted, so the entire .kilocode/
+  it("#8a empty managed sub-dirs and root dir are pruned (dsh: no structured config)", async () => {
+    // dsh has no hooks.json/settings.json/config.toml/package.json — every
+    // manifest file is opaque and gets deleted, so the entire .dsh/
     // tree should disappear, demonstrating both nested-subdir cleanup and
     // empty-platform-root cleanup.
-    await init({ yes: true, kilo: true, force: true });
+    await init({ yes: true, dsh: true, force: true });
 
-    // Detect kilo's actual config dir from manifest entries.
+    // Detect dsh's actual config dir from manifest entries.
     const hashesBefore = loadHashes(tmpDir);
-    const kiloEntry = Object.keys(hashesBefore).find(
-      (p) => !p.startsWith(".trellis/") && p !== "AGENTS.md",
+    const dshEntry = Object.keys(hashesBefore).find((p) =>
+      p.startsWith(".dsh/"),
     );
-    if (!kiloEntry) throw new Error("test fixture: no kilo entries found");
-    const kiloRoot = kiloEntry.split("/")[0];
-    expect(fs.existsSync(path.join(tmpDir, kiloRoot))).toBe(true);
+    if (!dshEntry) throw new Error("test fixture: no dsh entries found");
+    const dshRoot = dshEntry.split("/")[0];
+    expect(fs.existsSync(path.join(tmpDir, dshRoot))).toBe(true);
 
     await uninstall({ yes: true });
 
     // Empty platform root dir should be removed.
-    expect(fs.existsSync(path.join(tmpDir, kiloRoot))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, dshRoot))).toBe(false);
   });
 
   it("#8b platform root dir survives only when scrubbing leaves residual structured content", async () => {
@@ -308,7 +340,9 @@ describe("uninstall() integration", () => {
     // We need this file in the manifest for it to be processed. If init
     // didn't track it, add it manually so the scrubber path runs.
     const hashes = loadHashes(tmpDir);
-    if (!Object.prototype.hasOwnProperty.call(hashes, ".claude/settings.json")) {
+    if (
+      !Object.prototype.hasOwnProperty.call(hashes, ".claude/settings.json")
+    ) {
       hashes[".claude/settings.json"] = "synthetic-hash";
       const hashFile = path.join(
         tmpDir,
@@ -325,10 +359,9 @@ describe("uninstall() integration", () => {
 
     // .trellis/ is gone, but settings.json should remain (had user fields).
     if (fs.existsSync(settingsPath)) {
-      const after = JSON.parse(fs.readFileSync(settingsPath, "utf-8")) as Record<
-        string,
-        unknown
-      >;
+      const after = JSON.parse(
+        fs.readFileSync(settingsPath, "utf-8"),
+      ) as Record<string, unknown>;
       expect(after.model).toBe("claude-sonnet-4");
       expect(after.permissions).toEqual({ allow: ["Bash(git:*)"] });
 

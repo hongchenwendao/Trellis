@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Multi-Platform Sub-Agent Context Injection Hook
+Claude Code / Cursor / Codex Sub-Agent Context Injection Hook
 
 Injects task-specific context when sub-agents (implement, check, research) are spawned.
 
@@ -92,25 +92,10 @@ def _detect_platform(input_data: dict) -> str | None:
         return "codex"
     if isinstance(input_data.get("cursor_version"), str):
         return "cursor"
-    # CLAUDE_PROJECT_DIR is a compatibility alias that several hosts set
-    # alongside their own variable — CodeBuddy, ZCode and Trae all do. It must
-    # therefore be checked LAST, or every one of them is detected as claude and
-    # the context key becomes `claude_<their-session-id>`. That key does not
-    # match the session file `task.py start` wrote under the host's real name,
-    # so the sub-agent starts with no task context while the pointer exists on
-    # disk. Same fix as inject-workflow-state.py and session-start.py; this
-    # third copy was missed when those two were corrected.
+    # Cursor may also expose Claude's compatibility variable. Its own identity
+    # must win so the sub-agent reads the same session pointer as the host.
     env_map = {
-        "ZCODE_PROJECT_DIR": "zcode",
         "CURSOR_PROJECT_DIR": "cursor",
-        "CODEBUDDY_PROJECT_DIR": "codebuddy",
-        "FACTORY_PROJECT_DIR": "droid",
-        "GEMINI_PROJECT_DIR": "gemini",
-        "QODER_PROJECT_DIR": "qoder",
-        "KIRO_PROJECT_DIR": "kiro",
-        "COPILOT_PROJECT_DIR": "copilot",
-        "TRAE_PROJECT_DIR": "trae",
-        # Last: the shared alias, only meaningful once no vendor key matched.
         "CLAUDE_PROJECT_DIR": "claude",
     }
     for env_name, platform in env_map.items():
@@ -121,18 +106,6 @@ def _detect_platform(input_data: dict) -> str | None:
         return "claude"
     if ".cursor" in script_parts:
         return "cursor"
-    if ".gemini" in script_parts:
-        return "gemini"
-    if ".qoder" in script_parts:
-        return "qoder"
-    if ".codebuddy" in script_parts:
-        return "codebuddy"
-    if ".factory" in script_parts:
-        return "droid"
-    if ".kiro" in script_parts:
-        return "kiro"
-    if ".zcode" in script_parts:
-        return "zcode"
     return None
 
 
@@ -1044,17 +1017,11 @@ def _extract_subagent_type(tool_input: dict) -> str:
 
 
 def _parse_hook_input(input_data: dict) -> tuple[str, str, dict]:
-    """Parse hook input across different platform formats.
+    """Parse Claude Code or Cursor Task/Agent/Subagent hook input.
 
     Returns (subagent_type, original_prompt, tool_input).
-    Handles:
-    - Claude Code / Qoder / Droid: tool_name=Task|Agent, tool_input.subagent_type
-    - CodeBuddy: tool_name=task (IDE) or Task (CLI), tool_input.subagent_name
-    - Cursor: tool_name=Task|Subagent, tool_input.subagent_type
-    - Copilot CLI: toolName=task (camelCase key, lowercase value)
-    - ZCode: toolName=Agent, toolInput/tool_input.subagent_type
-    - Gemini CLI: tool_name IS the agent name (BeforeTool matcher already filtered)
-    - Kiro: agentSpawn hook, agent_name field at top level
+    Cursor may use camelCase input keys; both hosts use Task/Agent/Subagent
+    tool calls with a nested agent name and prompt.
     """
     tool_input = input_data.get("tool_input", {})
     if not isinstance(tool_input, dict):
@@ -1070,21 +1037,6 @@ def _parse_hook_input(input_data: dict) -> tuple[str, str, dict]:
             tool_input.get("prompt", ""),
             tool_input,
         )
-
-    # Kiro: agentSpawn hook passes agent_name at top level
-    agent_name = input_data.get("agent_name", "")
-    if agent_name:
-        return agent_name, tool_input.get("prompt", input_data.get("prompt", "")), tool_input
-
-    # Gemini CLI: BeforeTool where tool_name IS the agent name
-    # (matcher already ensured it's one of our agents)
-    if tool_name in AGENTS_ALL:
-        return tool_name, tool_input.get("prompt", ""), tool_input
-
-    # Copilot CLI: toolName field (camelCase), value might be the agent name
-    tool_name_camel = input_data.get("toolName", "")
-    if tool_name_camel in AGENTS_ALL:
-        return tool_name_camel, input_data.get("toolArgs", ""), tool_input
 
     return "", "", tool_input
 
@@ -1177,32 +1129,17 @@ def main():
     if not context:
         sys.exit(0)
 
-    # Return updated input. Most platforms ignore unrecognized fields, so we
-    # include multiple formats. ZCode is stricter; live probing confirmed the
-    # nested Claude-compatible shape below reaches the sub-agent prompt.
+    # Return Claude Code's hook envelope and Cursor's top-level fields.
     updated = {**tool_input, "prompt": new_prompt}
-    if _detect_platform(input_data) == "zcode":
-        output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "allow",
-                "updatedInput": updated,
-            }
-        }
-    else:
-        output = {
-            # Claude Code / Qoder / CodeBuddy / Droid format
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "allow",
-                "updatedInput": updated,
-            },
-            # Cursor format
-            "permission": "allow",
-            "updated_input": updated,
-            # Gemini format
+    output = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
             "updatedInput": updated,
-        }
+        },
+        "permission": "allow",
+        "updated_input": updated,
+    }
 
     print(json.dumps(output, ensure_ascii=False))
     sys.exit(0)

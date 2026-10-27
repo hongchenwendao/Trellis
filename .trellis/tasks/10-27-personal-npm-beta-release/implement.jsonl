@@ -1,0 +1,8 @@
+{"file":".trellis/spec/cli/backend/release-process.md","reason":"Version lockstep, packed-dependency rewrite, publish ordering, and the CI-only rule this task deliberately replaces with a local path."}
+{"file":".trellis/spec/cli/backend/commands-upgrade.md","reason":"Upgrade contract: npm backend, channel inference, binary-check strings, dry-run behavior."}
+{"file":".trellis/spec/cli/backend/directory-structure.md","reason":"Monorepo layout and which files consume the package names."}
+{"file":".trellis/spec/cli/backend/script-conventions.md","reason":"Dogfood/template parity requirement for session_context.py and script edit rules."}
+{"file":".trellis/spec/cli/backend/quality-guidelines.md","reason":"Validation bar and native-dependency policy for the publish path."}
+{"file":".trellis/spec/cli/backend/filesystem-safety.md","reason":"Ensure packaging never sweeps private/user state into artifacts."}
+{"file":".trellis/spec/cli/unit-test/conventions.md","reason":"Keep tests meaningful when package-name assertions change."}
+{"file":".trellis/spec/cli/unit-test/integration-patterns.md","reason":"Real-CLI integration coverage pattern used for the out-of-tree test."}

@@ -2,6 +2,11 @@
 
 感谢你对 Trellis 的关注！本文档提供参与项目贡献的指南。
 
+此个人 fork 仅支持 Claude Code（`claude-code`）、Codex（`codex`）、
+Cursor（`cursor`）、Pi Agent（`pi`，不是 `omp`）和 DeepSeek Harness（`dsh`）。
+参数和本地使用方法见[支持平台](README_CN.md#支持平台)。修改适配器时保留共享能力
+和历史记录；上游文档可能描述更多平台。
+
 ## 贡献方式
 
 ### 报告 Bug
@@ -71,9 +76,10 @@
 
 ```bash
 pnpm lint        # TypeScript ESLint 检查
-pnpm lint:py     # Python 类型检查 (basedpyright)
-pnpm lint:all    # 同时运行以上两者
+pnpm --filter @mokshaall/trellis lint:py # Python 类型检查 (basedpyright)
 pnpm typecheck   # TypeScript 类型检查
+pnpm build       # 实际 CLI 集成测试前先构建
+pnpm test        # Core 与 CLI 回归测试
 ```
 
 > **注意：** 提交时 pre-commit hook 会自动对暂存的 `.ts` 文件运行 `eslint --fix` 和 `prettier --write`。

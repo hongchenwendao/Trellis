@@ -7,15 +7,9 @@
  *
  * The templates are GENERIC templates for user projects:
  * - src/templates/trellis/ - Workflow scripts and config
- * - src/templates/claude/ - Claude Code commands, agents, hooks
- * - src/templates/cursor/ - Cursor commands
- * - src/templates/iflow/ - iFlow CLI commands, agents, hooks
- * - src/templates/opencode/ - OpenCode commands, agents, hooks
- * - src/templates/codex/ - Codex agents, hooks, config
- * - src/templates/kilo/ - Kilo CLI commands
- * - src/templates/antigravity/ - Antigravity workflows
- * - src/templates/kiro/ - Kiro Code skills
- * - src/templates/gemini/ - Gemini CLI commands (TOML)
+ * - src/templates/{claude,codex,cursor,pi,dsh}/ - retained platform assets
+ * - src/templates/common/ and shared-hooks/ - shared capabilities
+ * - src/templates/trellis/ - workflow scripts and config
  * - src/templates/markdown/ - Markdown templates (spec, guides)
  *
  * Note: We NO LONGER copy from the project's own .trellis/, .cursor/, .claude/
@@ -64,9 +58,23 @@ function copyDir(src, dest) {
   }
 }
 
-// Copy src/templates to dist/templates
-copyDir("src/templates", "dist/templates");
-console.log("Copied src/templates/ to dist/templates/");
+// Package only active installers and shared templates. A retired source
+// directory may remain locally for ignored caches; it is not an install asset.
+const PACKAGED_TEMPLATE_DIRS = [
+  "claude",
+  "codex",
+  "cursor",
+  "pi",
+  "dsh",
+  "common",
+  "shared-hooks",
+  "trellis",
+  "markdown",
+];
+for (const entry of PACKAGED_TEMPLATE_DIRS) {
+  copyDir(join("src/templates", entry), join("dist/templates", entry));
+}
+console.log("Copied retained platform and shared templates to dist/templates/");
 
 // Copy src/migrations/manifests to dist/migrations/manifests
 copyDir("src/migrations/manifests", "dist/migrations/manifests");

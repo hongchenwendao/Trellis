@@ -11,9 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 import { AI_TOOLS } from "../src/types/ai-tools.js";
-import {
-  PLATFORM_IDS,
-} from "../src/configurators/index.js";
+import { PLATFORM_IDS } from "../src/configurators/index.js";
 
 const COMMANDER_RESERVED_FLAGS = ["help", "version", "V", "h"];
 
@@ -22,6 +20,16 @@ const COMMANDER_RESERVED_FLAGS = ["help", "version", "V", "h"];
 // =============================================================================
 
 describe("registry internal consistency", () => {
+  it("supports exactly the five personal-fork installation platforms", () => {
+    expect([...PLATFORM_IDS].sort()).toEqual([
+      "claude-code",
+      "codex",
+      "cursor",
+      "dsh",
+      "pi",
+    ]);
+  });
+
   it("PLATFORM_IDS length matches AI_TOOLS keys", () => {
     expect(PLATFORM_IDS.length).toBe(Object.keys(AI_TOOLS).length);
   });
@@ -85,7 +93,6 @@ describe("registry internal consistency", () => {
       expect(config.templateContext.cliFlag).toBe(config.cliFlag);
     }
   });
-
 });
 
 // =============================================================================
@@ -101,41 +108,8 @@ describe("UserPromptSubmit hook wiring", () => {
       event: "UserPromptSubmit",
     },
     {
-      platform: "qoder",
-      path: "qoder/settings.json",
-      event: "UserPromptSubmit",
-    },
-    {
-      platform: "codebuddy",
-      path: "codebuddy/settings.json",
-      event: "UserPromptSubmit",
-    },
-    {
-      platform: "droid",
-      path: "droid/settings.json",
-      event: "UserPromptSubmit",
-    },
-    {
-      // Gemini CLI 0.40+ renamed the per-turn event from `UserPromptSubmit`
-      // (Claude Code naming we initially copied) to `BeforeAgent`. The
-      // schema validator rejects the legacy name — see issue #224.
-      platform: "gemini",
-      path: "gemini/settings.json",
-      event: "BeforeAgent",
-    },
-    {
-      platform: "copilot",
-      path: "copilot/hooks.json",
-      event: "userPromptSubmitted",
-    },
-    {
       platform: "codex",
       path: "codex/hooks.json",
-      event: "UserPromptSubmit",
-    },
-    {
-      platform: "trae",
-      path: "trae/hooks.json",
       event: "UserPromptSubmit",
     },
   ] as const;
@@ -146,12 +120,7 @@ describe("UserPromptSubmit hook wiring", () => {
       const { dirname, join } = await import("node:path");
       const { fileURLToPath } = await import("node:url");
       const __filename = fileURLToPath(import.meta.url);
-      const templatesRoot = join(
-        dirname(__filename),
-        "..",
-        "src",
-        "templates",
-      );
+      const templatesRoot = join(dirname(__filename), "..", "src", "templates");
       const raw = fs.readFileSync(join(templatesRoot, path), "utf-8");
       const parsed = JSON.parse(raw) as {
         hooks?: Record<string, unknown>;
@@ -161,120 +130,66 @@ describe("UserPromptSubmit hook wiring", () => {
       expect(raw).toContain("inject-workflow-state.py");
     });
   }
-
-  it("kiro main `trellis` agent wires userPromptSubmit; sub-agents do not", async () => {
-    // Kiro DOES support per-turn hooks (official docs: CLI agent
-    // `hooks.userPromptSubmit`). The main `trellis` agent wires the per-turn
-    // breadcrumb; the 3 sub-agents only inject sub-agent context on spawn.
-    const fs = await import("node:fs");
-    const { dirname, join } = await import("node:path");
-    const { fileURLToPath } = await import("node:url");
-    const __filename = fileURLToPath(import.meta.url);
-    const kiroAgentsDir = join(
-      dirname(__filename),
-      "..",
-      "src",
-      "templates",
-      "kiro",
-      "agents",
-    );
-    for (const entry of fs.readdirSync(kiroAgentsDir)) {
-      if (!entry.endsWith(".json")) continue;
-      const content = fs.readFileSync(join(kiroAgentsDir, entry), "utf-8");
-      const parsed = JSON.parse(content) as {
-        hooks?: Record<string, unknown>;
-      };
-      if (entry === "trellis.json") {
-        expect(Object.keys(parsed.hooks ?? {})).toContain("userPromptSubmit");
-        expect(content).toContain("inject-workflow-state.py");
-      } else {
-        expect(
-          content,
-          `kiro/agents/${entry} (sub-agent) should not wire inject-workflow-state.py`,
-        ).not.toContain("inject-workflow-state.py");
-      }
-    }
-  });
 });
 
 // =============================================================================
-// Docs Drift (docs-site is hand-written; AI_TOOLS is the source of truth)
+// Fork documentation drift (upstream docs-site has its own platform registry)
 // =============================================================================
-//
-// 0.6.14 shipped while the docs still advertised 17 platforms and the registry
-// already had 21: --grok, --kimi, --snow and --trae worked but were documented
-// nowhere, and a user asked in the community whether Grok support was planned.
-// `trellis init --help` was correct that whole time because it is generated
-// from AI_TOOLS — only the prose drifted, and nothing failed when it did.
-//
-// docs-site is a submodule, so these skip when it is not checked out. CI clones
-// with `submodules: recursive`, so they always run there.
-//
-// Changelogs are excluded deliberately: they record what was true at a past
-// release, and rewriting them to match today's registry would be false.
+// Read required fork-owned files, never an optional/empty submodule. Historical
+// release notes and upstream documentation are not this fork's support promise.
 
-describe("docs-site matches the platform registry", () => {
-  async function docsPages(): Promise<{ root: string; files: string[] } | null> {
-    const fs = await import("node:fs");
+describe("fork READMEs match the platform registry", () => {
+  async function docsPages(): Promise<{ root: string; files: string[] }> {
     const { dirname, join } = await import("node:path");
     const { fileURLToPath } = await import("node:url");
     const __filename = fileURLToPath(import.meta.url);
-    const root = join(dirname(__filename), "..", "..", "..", "docs-site");
-    if (!fs.existsSync(root)) return null;
-
-    const files: string[] = [];
-    const walk = (dir: string) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-          if (entry.name === "changelog" || entry.name === "node_modules") continue;
-          walk(join(dir, entry.name));
-        } else if (entry.name.endsWith(".mdx")) {
-          files.push(join(dir, entry.name));
-        }
-      }
+    const root = join(dirname(__filename), "..", "..", "..");
+    return {
+      root,
+      files: [join(root, "README.md"), join(root, "README_CN.md")],
     };
-    walk(root);
-    return { root, files };
   }
 
-  it("every page that documents init flags documents all of them", async () => {
+  it("both support tables document exactly the registered IDs and init flags", async () => {
     const fs = await import("node:fs");
     const { relative } = await import("node:path");
     const docs = await docsPages();
-    if (docs === null) return;
 
-    const flags = PLATFORM_IDS.map((id) => `--${AI_TOOLS[id].cliFlag}`);
+    const expected = PLATFORM_IDS.map((id) => [
+      id,
+      `--${AI_TOOLS[id].cliFlag}`,
+    ]).sort();
     for (const file of docs.files) {
       const content = fs.readFileSync(file, "utf-8");
-      if (!/Supported flags|支持的 flag/.test(content)) continue;
-      for (const flag of flags) {
-        expect(
-          content,
-          `${relative(docs.root, file)} lists init flags but omits ${flag}`,
-        ).toContain(flag);
-      }
+      const rows = [
+        ...content.matchAll(/^\| [^|\n]+ \| `([^`]+)` \| `(--[^`]+)` \|$/gm),
+      ]
+        .map((row) => [row[1], row[2]])
+        .sort();
+      expect(rows, `${relative(docs.root, file)} platform table`).toEqual(
+        expected,
+      );
     }
   });
 
-  it("no page states a platform count other than the registry's", async () => {
+  it("both READMEs state the current platform count, including single digits", async () => {
     const fs = await import("node:fs");
     const { relative } = await import("node:path");
     const docs = await docsPages();
-    if (docs === null) return;
 
-    // Only two-digit numbers are read as a claim about how many platforms are
-    // supported. Prose legitimately says "on both platforms" or walks through
-    // three in an example; a real support count has never been below ten.
-    const claim = /(\d{2,})\s*(?:configured\s+)?(?:platforms|个已配置平台|个平台)/g;
+    const claim =
+      /(\d+)\s*(?:AI\s+coding\s+platforms|platforms|个\s*(?:AI\s+coding\s+)?平台)/g;
     for (const file of docs.files) {
       const content = fs.readFileSync(file, "utf-8");
-      for (const [text, count] of content.matchAll(claim)) {
+      const claims = [...content.matchAll(claim)];
+      expect(
+        claims.length,
+        `${relative(docs.root, file)} support count`,
+      ).toBeGreaterThan(0);
+      for (const [text, count] of claims) {
         expect(
           Number(count),
-          `${relative(docs.root, file)} says "${text.trim()}", registry has ` +
-            `${PLATFORM_IDS.length}. Check the same page for a platform or ` +
-            `flag list to update alongside the number — they are usually ` +
-            `separate lines, and bumping only the count is the easy miss.`,
+          `${relative(docs.root, file)} says "${text.trim()}", registry has ${PLATFORM_IDS.length}`,
         ).toBe(PLATFORM_IDS.length);
       }
     }
@@ -297,7 +212,14 @@ describe("every platform resolves to a marker label workflow.md uses", () => {
     const { fileURLToPath } = await import("node:url");
 
     const testDir = dirname(fileURLToPath(import.meta.url));
-    const scriptsDir = join(testDir, "..", "src", "templates", "trellis", "scripts");
+    const scriptsDir = join(
+      testDir,
+      "..",
+      "src",
+      "templates",
+      "trellis",
+      "scripts",
+    );
     const workflowPath = join(
       testDir,
       "..",

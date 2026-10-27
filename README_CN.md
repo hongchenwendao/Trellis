@@ -13,23 +13,18 @@
 
 <p align="center">
 <a href="./README.md">English</a> •
-<a href="https://docs.trytrellis.app/zh">文档</a> •
-<a href="https://docs.trytrellis.app/zh/start/install-and-first-task">快速开始</a> •
-<a href="https://docs.trytrellis.app/zh/advanced/multi-platform">支持平台</a> •
+<a href="https://docs.trytrellis.app/zh">上游文档</a> •
+<a href="#快速开始">快速开始</a> •
+<a href="#支持平台">支持平台</a> •
 <a href="https://docs.trytrellis.app/zh/start/real-world-scenarios">使用场景</a>
 </p>
 
 <p align="center">
-<a href="https://www.npmjs.com/package/@mindfoldhq/trellis"><img src="https://img.shields.io/npm/v/@mindfoldhq/trellis.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
-<a href="https://www.npmjs.com/package/@mindfoldhq/trellis"><img src="https://img.shields.io/npm/dw/@mindfoldhq/trellis?style=flat-square&color=cb3837&label=downloads" alt="npm downloads" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/stargazers"><img src="https://img.shields.io/github/stars/mindfold-ai/Trellis?style=flat-square&color=eab308" alt="stars" /></a>
-<a href="https://docs.trytrellis.app/zh"><img src="https://img.shields.io/badge/docs-trytrellis.app-0f766e?style=flat-square" alt="docs" /></a>
-<a href="https://discord.com/invite/tWcCZ3aRHc"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/issues"><img src="https://img.shields.io/github/issues/mindfold-ai/Trellis?style=flat-square&color=e67e22" alt="open issues" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/pulls"><img src="https://img.shields.io/github/issues-pr/mindfold-ai/Trellis?style=flat-square&color=9b59b6" alt="open PRs" /></a>
-<a href="https://deepwiki.com/mindfold-ai/Trellis"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" alt="Ask DeepWiki" /></a>
-<a href="https://chatgpt.com/?q=Explain+the+project+mindfold-ai/Trellis+on+GitHub"><img src="https://img.shields.io/badge/Ask-ChatGPT-74aa9c?style=flat-square&logo=openai&logoColor=white" alt="Ask ChatGPT" /></a>
+<a href="https://www.npmjs.com/package/@mokshaall/trellis"><img src="https://img.shields.io/npm/v/@mokshaall/trellis.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
+<a href="https://github.com/hongchenwendao/Trellis/blob/personal/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
+<a href="https://github.com/hongchenwendao/Trellis"><img src="https://img.shields.io/badge/fork-hongchenwendao%2FTrellis-181717?style=flat-square" alt="fork" /></a>
+<a href="https://github.com/mindfold-ai/Trellis"><img src="https://img.shields.io/badge/upstream-mindfold--ai%2FTrellis-blue?style=flat-square" alt="upstream" /></a>
+<a href="https://docs.trytrellis.app/zh"><img src="https://img.shields.io/badge/docs-upstream-0f766e?style=flat-square" alt="upstream docs" /></a>
 </p>
 
 <p align="center">
@@ -44,7 +39,26 @@
 | **任务驱动工作流** | PRD、实现上下文、审查上下文与任务状态统一存放于 `.trellis/tasks/`，AI 开发过程保持结构化、可追溯。 |
 | **项目记忆** | `.trellis/workspace/` 中的工作日志（journal）会保留上一次会话的脉络，因此每次新会话都能基于真实上下文开始。 |
 | **团队共享标准** | Spec 随仓库一同版本化，个人总结出的规则与流程可以直接成为整个团队的基础设施。 |
-| **多平台复用** | 同一套 Trellis 结构覆盖 22 个 AI coding 平台，无需为每个工具单独搭建工作流。 |
+| **多平台复用** | 同一套 Trellis 结构覆盖 5 个 AI coding 平台，无需为每个工具单独搭建工作流。 |
+
+## 支持平台
+
+此个人 fork 仅保留以下安装适配器：
+
+| 平台 | ID | 初始化参数 |
+| --- | --- | --- |
+| Claude Code | `claude-code` | `--claude` |
+| Codex | `codex` | `--codex` |
+| Cursor | `cursor` | `--cursor` |
+| Pi Agent | `pi` | `--pi` |
+| DeepSeek Harness | `dsh` | `--dsh` |
+
+Pi Agent 不是 Oh My Pi（`omp`）。共享规范、任务、技能和工作流继续保留；
+Codex 保留 auto/inline 两种模式，dsh 使用内联流程。
+
+更新只维护保留平台和共享内容，不自动卸载已有的退役平台文件。
+仅配置退役平台的项目需要先添加保留平台才能更新；若旧的受管资产妨碍安全清理，
+卸载类命令会提前停止。历史会话读取器独立于安装适配器保留，已有日志仍可检索。
 
 ## 前置要求
 
@@ -54,17 +68,21 @@
 ## 快速开始
 
 ```bash
-# 1. 安装 Trellis
-npm install -g @mindfoldhq/trellis@latest
+# 1. 安装此 fork
+npm install -g @mokshaall/trellis@beta
 
-# 2. 在仓库中初始化
-trellis init -u your-name
+# 2. 在目标项目中初始化所需平台
+cd /path/to/your-project
+moksha-trellis init --claude --codex --cursor --pi --dsh -u your-name
 
-# 3. 或仅初始化你实际使用的平台
-trellis init --cursor --opencode --codex -u your-name
+# 3. 之后更新该项目
+moksha-trellis update
 ```
 
-查看 [快速开始](https://docs.trytrellis.app/zh/start/install-and-first-task) 与 [支持平台](https://docs.trytrellis.app/zh/advanced/multi-platform) 指南以了解详细配置步骤。
+`moksha-trellis` 是此 fork 安装的唯一终端命令，不再提供 `trellis` 与 `tl`。
+只传入你需要的平台参数。上游 `@mindfoldhq/trellis` 包、在线文档以及
+`docs-site`、`marketplace` 子模块均为上游资料，其平台列表可能不同；
+此 fork 的支持范围以上表为准。
 
 ## 如何使用
 
@@ -88,8 +106,8 @@ Trellis 内部运行一个 4 阶段循环，skill 与子代理均由系统自动
 
 | 需求 | 链接 |
 | --- | --- |
-| 在仓库中安装 Trellis | [快速开始](https://docs.trytrellis.app/zh/start/install-and-first-task) |
-| 了解各平台之间的差异 | [支持平台](https://docs.trytrellis.app/zh/advanced/multi-platform) |
+| 在项目中使用此本地 fork | [快速开始](#快速开始) |
+| 查看此 fork 的平台范围 | [支持平台](#支持平台) |
 | 查看实际使用场景 | [真实场景](https://docs.trytrellis.app/zh/start/real-world-scenarios) |
 | 从 Spec 模板起步 | [Spec 模板](https://docs.trytrellis.app/zh/templates/specs-index) |
 | 跟进版本更新 | [更新日志](https://docs.trytrellis.app/zh/changelog) |

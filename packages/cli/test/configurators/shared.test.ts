@@ -518,13 +518,17 @@ describe("resolvePlaceholdersNeutral", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveSkillsNeutral / resolveAllAsSkillsNeutral", () => {
-  it("resolveSkillsNeutral produces byte-identical output for Codex and Gemini", () => {
+  it("resolveSkillsNeutral produces byte-identical output for Codex, Pi and dsh", () => {
     const codexSkills = resolveSkillsNeutral(AI_TOOLS.codex.templateContext);
-    const geminiSkills = resolveSkillsNeutral(AI_TOOLS.gemini.templateContext);
-    expect(codexSkills.length).toBe(geminiSkills.length);
-    for (let i = 0; i < codexSkills.length; i++) {
-      expect(codexSkills[i].name).toBe(geminiSkills[i].name);
-      expect(codexSkills[i].content).toBe(geminiSkills[i].content);
+    for (const platform of ["pi", "dsh"] as const) {
+      const otherSkills = resolveSkillsNeutral(
+        AI_TOOLS[platform].templateContext,
+      );
+      expect(otherSkills.length).toBe(codexSkills.length);
+      for (let i = 0; i < codexSkills.length; i++) {
+        expect(otherSkills[i].name).toBe(codexSkills[i].name);
+        expect(otherSkills[i].content).toBe(codexSkills[i].content);
+      }
     }
   });
 

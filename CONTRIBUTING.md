@@ -2,6 +2,12 @@
 
 Thanks for your interest in contributing to Trellis! This document provides guidelines for contributing to the project.
 
+This personal fork supports only Claude Code (`claude-code`), Codex (`codex`),
+Cursor (`cursor`), Pi Agent (`pi`, not `omp`) and DeepSeek Harness (`dsh`).
+See [Supported Platforms](README.md#supported-platforms) for flags and local
+usage. Keep shared capabilities and historical records when changing adapters;
+upstream documentation may describe additional platforms.
+
 ## Ways to Contribute
 
 ### Reporting Bugs
@@ -71,9 +77,10 @@ Code contributions are welcome for:
 
 ```bash
 pnpm lint        # ESLint for TypeScript
-pnpm lint:py     # Type checking for Python (basedpyright)
-pnpm lint:all    # Run both
+pnpm --filter @mokshaall/trellis lint:py # Python type checking (basedpyright)
 pnpm typecheck   # TypeScript type checking
+pnpm build       # Build before tests that execute the real CLI
+pnpm test        # Core and CLI regression suites
 ```
 
 > **Note:** Pre-commit hooks will automatically run `eslint --fix` and `prettier --write` on staged `.ts` files.

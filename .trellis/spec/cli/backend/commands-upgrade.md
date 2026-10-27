@@ -1,11 +1,11 @@
-# `trellis upgrade` Command
+# `moksha-trellis upgrade` Command
 
-How `trellis upgrade` upgrades the globally installed Trellis CLI package.
+How `moksha-trellis upgrade` upgrades the globally installed Trellis CLI package.
 
-This command is intentionally separate from `trellis update`:
+This command is intentionally separate from `moksha-trellis update`:
 
-- `trellis upgrade` updates the **CLI binary** by running npm's global install.
-- `trellis update` updates a **project's bundled Trellis files** under `.trellis/`
+- `moksha-trellis upgrade` updates the **CLI binary** by running npm's global install.
+- `moksha-trellis update` updates a **project's bundled Trellis files** under `.trellis/`
   and platform directories.
 
 ---
@@ -13,12 +13,12 @@ This command is intentionally separate from `trellis update`:
 ## User-facing contract
 
 ```text
-trellis upgrade [--tag <tag-or-version>] [--dry-run]
+moksha-trellis upgrade [--tag <tag-or-version>] [--dry-run]
 ```
 
 Behavior:
 
-- Builds and runs `npm install -g @mindfoldhq/trellis@<tag>`.
+- Builds and runs `npm install -g @mokshaall/trellis@<tag>`.
 - POSIX execution must spawn `npm` directly without shell execution.
 - Windows execution must route through `cmd.exe /d /s /c npm install -g ...`
   instead of directly spawning `npm.cmd`.
@@ -53,14 +53,14 @@ installed Node through pnpm, Homebrew, Volta, proto, or another manager.
 After npm reports success, print both:
 
 ```text
-trellis --version
+moksha-trellis --version
 ```
 
 and a platform-specific binary-resolution check:
 
 ```text
-which trellis   # POSIX
-where trellis   # Windows
+which moksha-trellis   # POSIX
+where moksha-trellis   # Windows
 ```
 
 This catches the common case where npm installed into one global prefix while
@@ -73,16 +73,16 @@ the user's shell still resolves an older `trellis` binary earlier on PATH.
 Any user-facing hint that previously said:
 
 ```text
-npm install -g @mindfoldhq/trellis@latest
+npm install -g @mokshaall/trellis@latest
 ```
 
 should now prefer:
 
 ```text
-trellis upgrade
+moksha-trellis upgrade
 ```
 
-This applies to CLI startup warnings, `trellis update` downgrade guidance, and
+This applies to CLI startup warnings, `moksha-trellis update` downgrade guidance, and
 session-start update hints.
 
 ---

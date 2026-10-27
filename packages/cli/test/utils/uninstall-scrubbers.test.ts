@@ -10,7 +10,6 @@
 import { describe, it, expect } from "vitest";
 import {
   scrubHooksJson,
-  scrubOpencodePackageJson,
   scrubPiSettings,
   scrubCodexConfigToml,
   scrubManagedMarkdownBlock,
@@ -357,34 +356,6 @@ describe("scrubHooksJson — flat schema", () => {
       "flat",
     );
     expect(fullyEmpty).toBe(true);
-  });
-});
-
-describe("scrubOpencodePackageJson", () => {
-  it("removes @opencode-ai/plugin and reports fullyEmpty", () => {
-    const input = { dependencies: { "@opencode-ai/plugin": "1.1.40" } };
-    const { content, fullyEmpty } = scrubOpencodePackageJson(
-      JSON.stringify(input, null, 2),
-    );
-    expect(fullyEmpty).toBe(true);
-    expect(JSON.parse(content)).toEqual({});
-  });
-
-  it("preserves other deps and other top-level fields", () => {
-    const input = {
-      name: "my-project",
-      dependencies: {
-        "@opencode-ai/plugin": "1.1.40",
-        lodash: "^4.0.0",
-      },
-    };
-    const { content, fullyEmpty } = scrubOpencodePackageJson(
-      JSON.stringify(input, null, 2),
-    );
-    const parsed = JSON.parse(content);
-    expect(parsed.name).toBe("my-project");
-    expect(parsed.dependencies).toEqual({ lodash: "^4.0.0" });
-    expect(fullyEmpty).toBe(false);
   });
 });
 

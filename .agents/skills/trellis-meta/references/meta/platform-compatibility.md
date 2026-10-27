@@ -1,6 +1,6 @@
-# Platform Compatibility Reference
+# Historical Platform Compatibility Reference
 
-Detailed guide on Trellis feature availability across different AI coding platforms.
+This is a pre-five-platform historical snapshot. For current support and paths, use `../platform-files/platform-map.md`.
 
 ---
 

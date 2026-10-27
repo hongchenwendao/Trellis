@@ -191,3 +191,16 @@ tmp1/
 .playwright-mcp
 .gitnexus
 .codegraph/
+
+# Copies of root legal and README files made by package prepack
+/packages/cli/README.md
+/packages/cli/LICENSE
+/packages/cli/COPYRIGHT
+/packages/cli/NOTICE
+/packages/core/README.md
+/packages/core/LICENSE
+/packages/core/COPYRIGHT
+/packages/core/NOTICE
+
+# Local release tarballs
+/artifacts/

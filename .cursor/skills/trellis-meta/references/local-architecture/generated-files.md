@@ -1,6 +1,6 @@
 # Local Files Generated After Init
 
-`trellis init` writes the Trellis runtime into the user project. Later, `trellis update` tries to update Trellis-managed template files, but it uses `.trellis/.template-hashes.json` to determine which files have already been modified by the user.
+`moksha-trellis init` writes the Trellis runtime into the user project. Later, `moksha-trellis update` tries to update Trellis-managed template files, but it uses `.trellis/.template-hashes.json` to determine which files have already been modified by the user.
 
 This page only describes files that are visible and editable inside the user project.
 
@@ -35,21 +35,23 @@ This page only describes files that are visible and editable inside the user pro
 
 ## Platform Directories
 
-Different platforms generate different directories. Common categories:
+The five supported platforms generate different directories. Common categories:
 
 | Category | Example paths | Purpose |
 | --- | --- | --- |
 | hooks | `.claude/hooks/`, `.codex/hooks/`, `.cursor/hooks/` | Inject session context, workflow-state, and sub-agent context. |
-| settings | `.claude/settings.json`, `.codex/hooks.json`, `.qoder/settings.json`, `.trae/hooks.json` | Tell the platform when to run hooks or plugins. |
-| agents | `.claude/agents/`, `.codex/agents/`, `.kiro/agents/`, `.zcode/agents/` | Define agents such as `trellis-research`, `trellis-implement`, and `trellis-check`. |
-| skills | `.claude/skills/`, `.agents/skills/`, `.qoder/skills/`, `.zcode/skills/` | Skills that auto-trigger or can be read by AI. |
-| commands/prompts/workflows | `.cursor/commands/`, `.github/prompts/`, `.devin/workflows/`, `.zcode/commands/` | Explicit user-invoked command or workflow entry points. |
+| settings | `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.pi/settings.json` | Tell the host when to run hooks or its extension. |
+| agents | `.claude/agents/`, `.codex/agents/`, `.cursor/agents/`, `.pi/agents/` | Define `trellis-research`, `trellis-implement`, and `trellis-check`. dsh runs these phases inline. |
+| skills | `.claude/skills/`, `.cursor/skills/`, `.agents/skills/`, `.dsh/skills/` | Skills that auto-trigger or can be read by AI; dsh has entry skills. |
+| commands/prompts | `.claude/commands/`, `.cursor/commands/`, `.pi/prompts/` | Explicit user-invoked entry points. |
+
+Pi uses `.pi/extensions/trellis/` for native sub-agent dispatch; dsh has no project hook or agent files. Older projects may retain retired-platform files, which this fork leaves in place during update.
 
 When modifying a platform directory, also confirm whether `.trellis/workflow.md` still describes the same flow.
 
 ## Meaning Of Template Hashes
 
-`.trellis/.template-hashes.json` records the content hash from the last time Trellis wrote a template file. `trellis update` uses it to distinguish three cases:
+`.trellis/.template-hashes.json` records the content hash from the last time Trellis wrote a template file. `moksha-trellis update` uses it to distinguish three cases:
 
 | Case | Update behavior |
 | --- | --- |
@@ -72,7 +74,7 @@ Editable by default:
 Do not edit by default:
 
 - Global npm install directory
-- `node_modules/@mindfoldhq/trellis`
+- `node_modules/@mokshaall/trellis`
 - Trellis GitHub repository source code
 - Concrete state files under `.trellis/.runtime/**`
 - Hash contents inside `.trellis/.template-hashes.json`

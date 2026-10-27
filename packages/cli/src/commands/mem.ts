@@ -1,5 +1,5 @@
 /**
- * mem.ts — CLI wrapper over `@mindfoldhq/trellis-core/mem`.
+ * mem.ts — CLI wrapper over `@mokshaall/trellis-core/mem`.
  *
  * The reusable retrieval / context-extraction logic lives in core; this file
  * owns only CLI concerns: argument parsing, terminal rendering, warning
@@ -12,7 +12,7 @@
  *   extract <session-id>          dump cleaned dialogue (use --grep KW to filter turns)
  *   projects                      list active project cwds (AI-routing entry point)
  *
- * Run `trellis mem help` for the full flag reference.
+ * Run `moksha-trellis mem help` for the full flag reference.
  */
 
 import * as os from "node:os";
@@ -26,14 +26,14 @@ import {
   MemSessionNotFoundError,
   readMemContext,
   searchMemSessions,
-} from "@mindfoldhq/trellis-core/mem";
+} from "@mokshaall/trellis-core/mem";
 import type {
   MemFilter,
   MemPhase,
   MemSessionInfo,
   MemSourceFilter,
   MemSourceKind,
-} from "@mindfoldhq/trellis-core/mem";
+} from "@mokshaall/trellis-core/mem";
 
 // ---------- argv ----------
 
@@ -447,7 +447,7 @@ function cmdExtract(argv: Argv): void {
 }
 
 function cmdHelp(): void {
-  console.log(`trellis mem — list/search Claude/Codex/Devin/Grok/OpenCode/Pi/ZCode sessions
+  console.log(`moksha-trellis mem — list/search Claude/Codex/Devin/Grok/OpenCode/Pi/ZCode sessions
 
 commands:
   list                          list sessions (default if no command)
@@ -477,11 +477,11 @@ flags:
   --help, -h                             show this help
 
 examples:
-  trellis mem list
-  trellis mem list --global --platform claude --since 2026-04-01
-  trellis mem search "session insight" --global
-  trellis mem extract 5842592d --grep memory
-  trellis mem extract 5842592d --phase brainstorm
+  moksha-trellis mem list
+  moksha-trellis mem list --global --platform claude --since 2026-04-01
+  moksha-trellis mem search "session insight" --global
+  moksha-trellis mem extract 5842592d --grep memory
+  moksha-trellis mem extract 5842592d --phase brainstorm
 `);
 }
 

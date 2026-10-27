@@ -105,9 +105,9 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 ### `.template-hashes.json`
 
-**Purpose**: Track template file versions for `trellis update`.
+**Purpose**: Track template file versions for `moksha-trellis update`.
 
-**Created by**: `trellis init` or `trellis update`
+**Created by**: `moksha-trellis init` or `moksha-trellis update`
 
 **Format**: JSON object mapping file paths to SHA-256 hashes.
 
@@ -120,7 +120,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 ```
 
 **Used by**:
-- `trellis update` - Detect which files have been modified
+- `moksha-trellis update` - Detect which files have been modified
 - Determines if files can be auto-updated or need conflict resolution
 
 **Behavior**:
@@ -133,7 +133,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Track installed Trellis CLI version.
 
-**Created by**: `trellis init` or `trellis update`
+**Created by**: `moksha-trellis init` or `moksha-trellis update`
 
 **Format**: Plain text, semver version string.
 
@@ -142,7 +142,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 ```
 
 **Used by**:
-- `trellis update` - Determine if update is needed
+- `moksha-trellis update` - Determine if update is needed
 - Version mismatch detection
 
 ---
@@ -190,7 +190,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Main workflow documentation for developers and AI.
 
-**Created by**: `trellis init`
+**Created by**: `moksha-trellis init`
 
 **Content sections**:
 1. Quick Start guide
@@ -211,7 +211,7 @@ uses `.runtime/sessions/<session-key>.json` only.
 
 **Purpose**: Configure Multi-Session and Ralph Loop.
 
-**Created by**: `trellis init`
+**Created by**: `moksha-trellis init`
 
 **Format**: YAML
 
@@ -299,7 +299,7 @@ Automation scripts.
 
 ## Template Files
 
-These files are managed by `trellis update`:
+These files are managed by `moksha-trellis update`:
 
 | File | Purpose |
 |------|---------|
@@ -321,7 +321,7 @@ These files are managed by `trellis update`:
 
 ## File Lifecycle
 
-### Created by `trellis init`
+### Created by `moksha-trellis init`
 
 ```
 .trellis/

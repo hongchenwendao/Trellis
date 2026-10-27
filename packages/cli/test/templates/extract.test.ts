@@ -3,7 +3,6 @@ import fs from "node:fs";
 import {
   getTrellisTemplatePath,
   getClaudeTemplatePath,
-  getOpenCodeTemplatePath,
   getPiTemplatePath,
   getPiSourcePath,
   getTrellisSourcePath,
@@ -26,12 +25,6 @@ describe("template path functions", () => {
 
   it("getClaudeTemplatePath returns existing directory", () => {
     const p = getClaudeTemplatePath();
-    expect(fs.existsSync(p)).toBe(true);
-    expect(fs.statSync(p).isDirectory()).toBe(true);
-  });
-
-  it("getOpenCodeTemplatePath returns existing directory", () => {
-    const p = getOpenCodeTemplatePath();
     expect(fs.existsSync(p)).toBe(true);
     expect(fs.statSync(p).isDirectory()).toBe(true);
   });

@@ -37,6 +37,7 @@ import path from "node:path";
 import { collectPlatformTemplates } from "../configurators/index.js";
 import { FILE_NAMES } from "../constants/paths.js";
 import { getAllMigrations } from "../migrations/index.js";
+import { getRetiredOwnedManifestKeys } from "../constants/retired-platform-paths.js";
 import { saveHashes } from "./template-hash.js";
 import { toPosix } from "./posix.js";
 import { TRELLIS_BLOCK_END, TRELLIS_BLOCK_START } from "./managed-paths.js";
@@ -128,6 +129,9 @@ export function pruneOrphanManifestKeys(
 ): PruneResult {
   const persist = options.persist ?? true;
   const known = buildKnownKeys(configuredPlatforms);
+  const retiredOwned = new Set(
+    getRetiredOwnedManifestKeys(hashes, configuredPlatforms),
+  );
   const pruned: string[] = [];
   const kept: TemplateHashes = {};
 
@@ -148,7 +152,7 @@ export function pruneOrphanManifestKeys(
       }
       continue;
     }
-    if (known.has(key)) {
+    if (known.has(key) || retiredOwned.has(key)) {
       kept[key] = value;
       continue;
     }

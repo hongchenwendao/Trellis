@@ -611,7 +611,7 @@ included with Trellis, verify the whole distribution path:
 - [ ] `npm pack --dry-run --json` includes the expected `dist/**` path.
 - [ ] The built binary installs the asset in a fresh temp repository.
 - [ ] `.trellis/.template-hashes.json` tracks the generated asset path.
-- [ ] `trellis update --dry-run` reports `Already up to date!` in that temp
+- [ ] `moksha-trellis update --dry-run` reports `Already up to date!` in that temp
   repository.
 
 **Why this matters**: docs/changelog text can move independently from the code

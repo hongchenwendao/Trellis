@@ -61,12 +61,6 @@ import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { computeHash } from "../../src/utils/template-hash.js";
 import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
 import {
-  COPILOT_INSTRUCTIONS_BLOCK_END,
-  COPILOT_INSTRUCTIONS_BLOCK_START,
-  COPILOT_INSTRUCTIONS_PATH,
-  getCopilotInstructions,
-} from "../../src/templates/copilot/index.js";
-import {
   replacePythonCommandLiterals,
   resolveSkills,
   resolveSkillsNeutral,
@@ -258,118 +252,150 @@ describe("update() integration", () => {
     expect(entries.filter((e) => e.startsWith(".backup-")).length).toBe(0);
   });
 
-  it("#1b current OpenCode templates are not classified as deprecated", async () => {
-    const startPath = ".opencode/commands/trellis/start.md";
-    await init({ yes: true, force: true, opencode: true });
-    expect(fs.existsSync(projectFile(startPath))).toBe(true);
+  it("queries the personal beta dist-tag for update version guidance", async () => {
+    await setupProject();
 
     await update({ dryRun: true });
 
-    const output = vi.mocked(console.log).mock.calls.flat().join("\n");
-    expect(output).not.toContain(`${startPath} (modified, skipped)`);
-  });
-
-  it("[issue-zcode-codex-upgrade] zcode private skills do not trigger legacy Codex backfill", async () => {
-    await init({ yes: true, force: true, zcode: true });
-
-    expect(fs.existsSync(projectFile(".zcode/commands/trellis/start.md"))).toBe(
-      false,
+    expect(fetch).toHaveBeenCalledWith(
+      "https://registry.npmjs.org/@mokshaall/trellis/beta",
     );
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/trellis-start/SKILL.md")),
-    ).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/trellis-check/SKILL.md")),
-    ).toBe(true);
-    expect(
-      fs.existsSync(projectFile(".zcode/agents/trellis-research.md")),
-    ).toBe(true);
-    expect(
-      fs.existsSync(projectFile(".agents/skills/trellis-start/SKILL.md")),
-    ).toBe(false);
-    expect(fs.existsSync(projectFile(".agents/skills"))).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".agents/skills/trellis-continue/SKILL.md")),
-    ).toBe(false);
-
-    await update({});
-
-    const logOutput = vi.mocked(console.log).mock.calls.flat().join("\n");
-    expect(logOutput).not.toContain("Legacy Codex detected");
-    expect(fs.existsSync(projectFile(".codex"))).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/trellis-start/SKILL.md")),
-    ).toBe(false);
-    expect(
-      fs.existsSync(projectFile(".zcode/skills/trellis-check/SKILL.md")),
-    ).toBe(true);
-    expect(
-      fs.existsSync(projectFile(".zcode/agents/trellis-research.md")),
-    ).toBe(true);
-    expect(fs.existsSync(projectFile(".agents/skills"))).toBe(false);
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining(`Latest on npm:   ${VERSION}`),
+    );
   });
 
-  it("[issue-zcode-plugin-hint] zcode update prints the bilingual plugin hint when already up to date", async () => {
-    await init({ yes: true, force: true, zcode: true });
+  it("updates retained templates in a mixed project without changing retired files or hashes", async () => {
+    await setupProject();
+    const oldOpenCode = ".opencode/package.json";
+    const oldMigrationSource = ".opencode/commands/trellis/before-dev.md";
+    const oldGemini = ".gemini/settings.json";
+    const oldSharedSkill = ".agents/skills/trellis-meta/SKILL.md";
+    writeProjectFile(
+      oldOpenCode,
+      '{"dependencies":{"@opencode-ai/plugin":"old"}}\n',
+    );
+    writeProjectFile(oldMigrationSource, "old OpenCode command\n");
+    writeProjectFile(oldGemini, '{"hooks":{}}\n');
+    writeProjectFile(oldSharedSkill, "old shared skill\n");
+    writeProjectFile(".opencode/runtime-cache.db", "user cache\n");
 
-    const originalVitest = process.env.VITEST;
-    const originalQuiet = process.env.TRELLIS_QUIET;
-    const originalWrite = process.stderr.write.bind(process.stderr);
-    const stderr: string[] = [];
-    process.stderr.write = ((chunk: string) => {
-      stderr.push(String(chunk));
-      return true;
-    }) as typeof process.stderr.write;
-    delete process.env.VITEST;
-    delete process.env.TRELLIS_QUIET;
+    const hashes = readHashesV2(hashFilePath());
+    hashes[oldOpenCode] = "original-open-code-hash";
+    hashes[oldMigrationSource] = "original-command-hash";
+    hashes[oldGemini] = "original-gemini-hash";
+    hashes[oldSharedSkill] = "original-shared-hash";
+    hashes[".opencode/runtime-cache.db"] = "poisoned-user-hash";
+    const oldRetained = "old pristine retained template\n";
+    writeProjectFile(MANAGED_FILE, oldRetained);
+    hashes[MANAGED_FILE] = computeHash(oldRetained);
+    writeHashesV2(hashFilePath(), hashes);
 
-    try {
-      await update({});
-    } finally {
-      process.stderr.write = originalWrite;
-      if (originalVitest === undefined) delete process.env.VITEST;
-      else process.env.VITEST = originalVitest;
-      if (originalQuiet === undefined) delete process.env.TRELLIS_QUIET;
-      else process.env.TRELLIS_QUIET = originalQuiet;
+    await update({ force: true, migrate: true });
+
+    expect(readProjectFile(MANAGED_FILE)).not.toBe(oldRetained);
+    expect(readProjectFile(oldOpenCode)).toContain("@opencode-ai/plugin");
+    expect(readProjectFile(oldMigrationSource)).toBe("old OpenCode command\n");
+    expect(readProjectFile(oldGemini)).toBe('{"hooks":{}}\n');
+    expect(readProjectFile(oldSharedSkill)).toBe("old shared skill\n");
+    const updatedHashes = readHashesV2(hashFilePath());
+    for (const key of [
+      oldOpenCode,
+      oldMigrationSource,
+      oldGemini,
+      oldSharedSkill,
+    ]) {
+      expect(updatedHashes[key]).toBe(hashes[key]);
     }
+    expect(updatedHashes[".opencode/runtime-cache.db"]).toBeUndefined();
+  });
 
-    expect(stderr.join("")).toBe(
-      "ℹ️  ZCode: if project Hooks are disabled, install trellis-bridge, then start a new session.\n" +
-        "   ZCode：若项目 Hooks 被禁用，请安装 trellis-bridge，然后新建会话。\n" +
-        "   请手动在 ZCode 插件市场中添加 https://github.com/CNHLAIA/ZCode-Trellis-Plugin.git，并手动安装 ZCode 补丁插件 trellis-bridge\n",
+  it("leaves a purely retired project untouched before update writes", async () => {
+    writeProjectFile(".trellis/.version", VERSION);
+    writeProjectFile(".opencode/package.json", "old OpenCode package\n");
+    writeHashesV2(hashFilePath(), {
+      ".opencode/package.json": "original-open-code-hash",
+    });
+    const manifestBefore = readProjectFile(".trellis/.template-hashes.json");
+
+    await update({ force: true, migrate: true });
+
+    expect(readProjectFile(".trellis/.template-hashes.json")).toBe(
+      manifestBefore,
+    );
+    expect(readProjectFile(".trellis/.version")).toBe(VERSION);
+    expect(readProjectFile(".opencode/package.json")).toBe(
+      "old OpenCode package\n",
+    );
+    expect(fs.readdirSync(projectFile(".trellis"))).toEqual([
+      ".template-hashes.json",
+      ".version",
+    ]);
+    expect(vi.mocked(console.error).mock.calls.flat().join("\n")).toContain(
+      "No supported platform is configured",
     );
   });
 
-  it("[issue-zcode-plugin-hint] zcode update prints the bilingual plugin hint after applying changes", async () => {
-    await init({ yes: true, force: true, zcode: true });
-    writeProjectFile(MANAGED_FILE, "user modified content");
+  for (const manifestState of ["missing", "empty"] as const) {
+    it(`leaves a purely retired project with ${manifestState} hashes untouched`, async () => {
+      writeProjectFile(".trellis/.version", VERSION);
+      const retiredMarker = ".opencode/skills/trellis-meta/SKILL.md";
+      writeProjectFile(retiredMarker, "old Trellis skill\n");
+      if (manifestState === "empty") writeHashesV2(hashFilePath(), {});
+      const before = fs.readdirSync(projectFile(".trellis"));
+      const manifestBefore =
+        manifestState === "empty"
+          ? readProjectFile(".trellis/.template-hashes.json")
+          : null;
 
-    const originalVitest = process.env.VITEST;
-    const originalQuiet = process.env.TRELLIS_QUIET;
-    const originalWrite = process.stderr.write.bind(process.stderr);
-    const stderr: string[] = [];
-    process.stderr.write = ((chunk: string) => {
-      stderr.push(String(chunk));
-      return true;
-    }) as typeof process.stderr.write;
-    delete process.env.VITEST;
-    delete process.env.TRELLIS_QUIET;
-
-    try {
       await update({ force: true });
-    } finally {
-      process.stderr.write = originalWrite;
-      if (originalVitest === undefined) delete process.env.VITEST;
-      else process.env.VITEST = originalVitest;
-      if (originalQuiet === undefined) delete process.env.TRELLIS_QUIET;
-      else process.env.TRELLIS_QUIET = originalQuiet;
-    }
 
-    expect(stderr.join("")).toBe(
-      "ℹ️  ZCode: if project Hooks are disabled, install trellis-bridge, then start a new session.\n" +
-        "   ZCode：若项目 Hooks 被禁用，请安装 trellis-bridge，然后新建会话。\n" +
-        "   请手动在 ZCode 插件市场中添加 https://github.com/CNHLAIA/ZCode-Trellis-Plugin.git，并手动安装 ZCode 补丁插件 trellis-bridge\n",
+      expect(fs.readdirSync(projectFile(".trellis"))).toEqual(before);
+      expect(readProjectFile(retiredMarker)).toBe("old Trellis skill\n");
+      expect(readProjectFile(".trellis/.version")).toBe(VERSION);
+      if (manifestBefore !== null) {
+        expect(readProjectFile(".trellis/.template-hashes.json")).toBe(
+          manifestBefore,
+        );
+      }
+      expect(vi.mocked(console.error).mock.calls.flat().join("\n")).toContain(
+        "No supported platform is configured",
+      );
+    });
+  }
+
+  it("does not mistake native retired files for a Trellis installation", async () => {
+    writeProjectFile(".trellis/.version", VERSION);
+    writeHashesV2(hashFilePath(), {});
+    writeProjectFile(".opencode/package.json", '{"name":"user-project"}\n');
+    writeProjectFile(".opencode/runtime-cache.db", "user cache\n");
+    writeProjectFile(".github/workflows/ci.yml", "name: user CI\n");
+
+    await update({ force: true });
+
+    expect(fs.existsSync(projectFile(".trellis/workflow.md"))).toBe(true);
+    expect(readProjectFile(".opencode/package.json")).toBe(
+      '{"name":"user-project"}\n',
     );
+    expect(readProjectFile(".opencode/runtime-cache.db")).toBe("user cache\n");
+    expect(vi.mocked(console.error).mock.calls.flat().join("\n")).not.toContain(
+      "No supported platform is configured",
+    );
+  });
+
+  it("updates a retained install with missing hashes while leaving a retired neighbor intact", async () => {
+    writeProjectFile(".trellis/.version", VERSION);
+    const retainedMarker = ".claude/skills/trellis-meta/SKILL.md";
+    const retiredMarker = ".opencode/skills/trellis-meta/SKILL.md";
+    writeProjectFile(retainedMarker, "old Claude skill\n");
+    writeProjectFile(retiredMarker, "old OpenCode skill\n");
+
+    await update({ force: true });
+
+    expect(readProjectFile(retainedMarker)).not.toBe("old Claude skill\n");
+    expect(readProjectFile(retiredMarker)).toBe("old OpenCode skill\n");
+    expect(readHashesV2(hashFilePath())[retiredMarker]).toBeUndefined();
+    expect(readHashesV2(hashFilePath())[retainedMarker]).toBeDefined();
   });
 
   it("[issue-447] 0.6.8 rename-dir migration moves legacy .pi/skills/ into shared .agents/skills/ even when Codex already installed the shared root", async () => {
@@ -459,16 +485,21 @@ describe("update() integration", () => {
     expect(classified.conflict).toHaveLength(0);
     expect(classified.auto).toHaveLength(1);
 
-    await executeMigrations(classified, tmpDir, { force: true, skipAll: false }, currentTemplates);
+    await executeMigrations(
+      classified,
+      tmpDir,
+      { force: true, skipAll: false },
+      currentTemplates,
+    );
 
     // No duplicate/leftover `.pi/skills/` directory should survive.
     expect(fs.existsSync(projectFile(".pi/skills"))).toBe(false);
 
     // `.agents/skills/` must end up with the correct, current, neutral
     // content — not the stale Pi-flavored bytes from the deleted legacy dir.
-    expect(
-      readProjectFile(".agents/skills/trellis-update-spec/SKILL.md"),
-    ).toBe(neutralContent);
+    expect(readProjectFile(".agents/skills/trellis-update-spec/SKILL.md")).toBe(
+      neutralContent,
+    );
   });
 
   it("#2 dry run makes no file changes even when changes exist", async () => {
@@ -624,66 +655,6 @@ describe("update() integration", () => {
     );
     // Tail equals the canonical template (force-applied managed block).
     expect(result.endsWith(templateContent.trimEnd() + "\n")).toBe(true);
-  });
-
-  it("#4e appends Trellis Copilot guidance to existing repo instructions", async () => {
-    await init({ yes: true, force: true, copilot: true });
-
-    const userContent =
-      "# Repo Copilot Instructions\n\nReview app code first.\n";
-    writeProjectFile(COPILOT_INSTRUCTIONS_PATH, userContent);
-
-    const hashFile = hashFilePath();
-    const hashes = removeHashEntry(
-      readHashesV2(hashFile),
-      COPILOT_INSTRUCTIONS_PATH,
-    ) as Record<string, string>;
-    writeHashesV2(hashFile, hashes);
-
-    await update({});
-
-    const result = readProjectFile(COPILOT_INSTRUCTIONS_PATH);
-    expect(result).toContain("# Repo Copilot Instructions");
-    expect(result).toContain("Review app code first.");
-    expect(result).toContain(COPILOT_INSTRUCTIONS_BLOCK_START);
-    expect(result).toContain(COPILOT_INSTRUCTIONS_BLOCK_END);
-    expect(result).toContain("Trellis-generated runtime");
-    expect(result.indexOf("# Repo Copilot Instructions")).toBeLessThan(
-      result.indexOf(COPILOT_INSTRUCTIONS_BLOCK_START),
-    );
-    expect(readHashesV2(hashFile)[COPILOT_INSTRUCTIONS_PATH]).toBe(
-      computeHash(result),
-    );
-  });
-
-  it("#4f refreshes only the Trellis Copilot guidance block", async () => {
-    await init({ yes: true, force: true, copilot: true });
-
-    const oldBlock = getCopilotInstructions().replace(
-      "Group duplicate root-cause findings into one comment",
-      "Leave duplicate comments for every occurrence",
-    );
-    const existingContent = `# Repo Copilot Instructions\n\n${oldBlock}\n\n## Local Notes\n\nKeep this.\n`;
-    writeProjectFile(COPILOT_INSTRUCTIONS_PATH, existingContent);
-
-    const hashFile = hashFilePath();
-    const hashes = readHashesV2(hashFile);
-    hashes[COPILOT_INSTRUCTIONS_PATH] = computeHash(existingContent);
-    writeHashesV2(hashFile, hashes);
-
-    await update({});
-
-    const result = readProjectFile(COPILOT_INSTRUCTIONS_PATH);
-    expect(result).toContain("# Repo Copilot Instructions");
-    expect(result).toContain("## Local Notes");
-    expect(result).toContain("Keep this.");
-    expect(result).toContain(
-      "Group duplicate root-cause findings into one comment",
-    );
-    expect(result).not.toContain("Leave duplicate comments");
-    expect(readHashesV2(hashFile)[COPILOT_INSTRUCTIONS_PATH]).toBe(
-      computeHash(result),
-    );
   });
 
   it("#5 force overwrites user-modified files", async () => {
@@ -876,11 +847,13 @@ describe("update() integration", () => {
     // auto-updated to the current packaged template.
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toBe(expectedWorkflow);
     expect(readProjectFile(MANAGED_FILE)).toBe(expectedGetContext);
-    // Prefix, not the whole marker: the inline block gains members as
-    // sub-agent-less platforms are added, and this assertion is about the
-    // block surviving the update, not about who is currently in it.
+    // The inline route and the sub-agent route both survive the whole-file
+    // upgrade, while the old platform markers are replaced.
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toContain(
-      "[codex-inline, Kilo, Antigravity, Devin",
+      "[codex-inline, DeepSeek Harness]",
+    );
+    expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).toContain(
+      "[Claude Code, Cursor, codex-sub-agent, Pi]",
     );
     expect(readProjectFile(PATHS.WORKFLOW_GUIDE_FILE)).not.toContain("[Codex]");
 
@@ -1502,13 +1475,13 @@ describe("update() integration", () => {
   it("#27 backup skips managed node_modules dependency trees", async () => {
     await setupProject();
 
-    const opencodeRoot = path.join(tmpDir, ".opencode");
-    fs.mkdirSync(path.join(opencodeRoot, "node_modules", "zod"), {
+    const claudeRoot = path.join(tmpDir, ".claude");
+    fs.mkdirSync(path.join(claudeRoot, "node_modules", "zod"), {
       recursive: true,
     });
-    fs.writeFileSync(path.join(opencodeRoot, "package.json"), "{}\n");
+    fs.writeFileSync(path.join(claudeRoot, "package.json"), "{}\n");
     fs.writeFileSync(
-      path.join(opencodeRoot, "node_modules", "zod", "index.js"),
+      path.join(claudeRoot, "node_modules", "zod", "index.js"),
       "module.exports = {};\n",
     );
 
@@ -1527,12 +1500,12 @@ describe("update() integration", () => {
       DIR_NAMES.WORKFLOW,
       backupDirs[0] as string,
     );
-    expect(
-      fs.existsSync(path.join(backupDir, ".opencode", "package.json")),
-    ).toBe(true);
-    expect(
-      fs.existsSync(path.join(backupDir, ".opencode", "node_modules")),
-    ).toBe(false);
+    expect(fs.existsSync(path.join(backupDir, ".claude", "package.json"))).toBe(
+      true,
+    );
+    expect(fs.existsSync(path.join(backupDir, ".claude", "node_modules"))).toBe(
+      false,
+    );
   });
 
   it("#workflow-md-r4 updates workflow.md as one runtime template when hash-tracked", async () => {
@@ -1567,13 +1540,9 @@ describe("update() integration", () => {
 
     const updated = fs.readFileSync(workflowPath, "utf-8");
     expect(updated).toBe(replacePythonCommandLiterals(workflowMdTemplate));
-    expect(updated).toContain(
-      "[Gemini, Qoder, Copilot, Reasonix, Trae, Grok, Kimi Code]",
-    );
-    expect(updated).toContain(
-      "[/Claude Code, Cursor, OpenCode, codex-sub-agent, CodeBuddy, Droid, Pi, ZCode, Snow, Oh My Pi]",
-    );
-    expect(updated).toContain("[codex-inline, Kilo, Antigravity, Devin");
+    expect(updated).toContain("[Claude Code, Cursor, codex-sub-agent, Pi]");
+    expect(updated).toContain("[/Claude Code, Cursor, codex-sub-agent, Pi]");
+    expect(updated).toContain("[codex-inline, DeepSeek Harness]");
     expect(updated).not.toContain("[Codex]");
     expect(updated).not.toContain("[Kilo, Antigravity, Windsurf]");
     expect(updated).not.toContain("legacy body");
@@ -1592,7 +1561,6 @@ describe("update() integration", () => {
      */
     const MIXED_OWNERSHIP = [
       FILE_NAMES.AGENTS,
-      COPILOT_INSTRUCTIONS_PATH,
       `${DIR_NAMES.WORKFLOW}/config.yaml`,
     ];
 

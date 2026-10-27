@@ -13,13 +13,22 @@ import {
   resolveCliFlag,
 } from "../../src/configurators/index.js";
 import { AI_TOOLS, type AITool } from "../../src/types/ai-tools.js";
-import { COPILOT_INSTRUCTIONS_PATH } from "../../src/templates/copilot/index.js";
 
 // =============================================================================
 // Derived Constants
 // =============================================================================
 
 describe("PLATFORM_IDS", () => {
+  it("contains exactly the five personal-fork adapters", () => {
+    expect(PLATFORM_IDS).toEqual([
+      "claude-code",
+      "cursor",
+      "codex",
+      "dsh",
+      "pi",
+    ]);
+  });
+
   it("contains all AI_TOOLS keys", () => {
     const aiToolKeys = Object.keys(AI_TOOLS);
     expect(PLATFORM_IDS).toEqual(expect.arrayContaining(aiToolKeys));
@@ -66,15 +75,8 @@ describe("isManagedPath", () => {
   it("matches platform config sub-paths", () => {
     expect(isManagedPath(".claude/commands/foo.md")).toBe(true);
     expect(isManagedPath(".cursor/rules/bar.md")).toBe(true);
-    expect(isManagedPath(".opencode/config.json")).toBe(true);
     expect(isManagedPath(".agents/skills/start/SKILL.md")).toBe(true);
     expect(isManagedPath(".codex/agents/check.toml")).toBe(true);
-    expect(isManagedPath(".agent/workflows/start.md")).toBe(true);
-    expect(isManagedPath(".kiro/skills/start/SKILL.md")).toBe(true);
-    expect(isManagedPath(".devin/workflows/trellis-start.md")).toBe(true);
-    expect(isManagedPath(".github/prompts/start.prompt.md")).toBe(true);
-    expect(isManagedPath(".github/copilot/hooks/session-start.py")).toBe(true);
-    expect(isManagedPath(".github/hooks/trellis.json")).toBe(true);
     expect(isManagedPath(".pi/extensions/trellis/index.ts")).toBe(true);
     expect(isManagedPath(".pi/prompts/trellis-continue.md")).toBe(true);
     expect(isManagedPath(".dsh/skills/trellis-start/SKILL.md")).toBe(true);
@@ -84,14 +86,8 @@ describe("isManagedPath", () => {
   it("matches exact managed directory names", () => {
     expect(isManagedPath(".claude")).toBe(true);
     expect(isManagedPath(".cursor")).toBe(true);
-    expect(isManagedPath(".opencode")).toBe(true);
     expect(isManagedPath(".agents/skills")).toBe(true);
     expect(isManagedPath(".codex")).toBe(true);
-    expect(isManagedPath(".agent/workflows")).toBe(true);
-    expect(isManagedPath(".kiro/skills")).toBe(true);
-    expect(isManagedPath(".devin/workflows")).toBe(true);
-    expect(isManagedPath(".github/prompts")).toBe(true);
-    expect(isManagedPath(".github/hooks")).toBe(true);
     expect(isManagedPath(".dsh")).toBe(true);
     expect(isManagedPath(".trellis")).toBe(true);
   });
@@ -107,15 +103,8 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".claude-backup")).toBe(false);
     expect(isManagedPath(".trellis-old")).toBe(false);
     expect(isManagedPath(".cursorignore")).toBe(false);
-    expect(isManagedPath(".opencode-v2")).toBe(false);
     expect(isManagedPath(".agents/skills-backup")).toBe(false);
     expect(isManagedPath(".codex-backup")).toBe(false);
-    expect(isManagedPath(".agent/workflows-backup")).toBe(false);
-    expect(isManagedPath(".kiro/skills-backup")).toBe(false);
-    expect(isManagedPath(".devin/workflows-backup")).toBe(false);
-    expect(isManagedPath(".github/prompts-backup")).toBe(false);
-    expect(isManagedPath(".github/copilot-backup")).toBe(false);
-    expect(isManagedPath(".github/hooks-backup")).toBe(false);
     expect(isManagedPath(".dsh-backup")).toBe(false);
   });
 
@@ -136,6 +125,9 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".git")).toBe(false);
     expect(isManagedPath("node_modules")).toBe(false);
     expect(isManagedPath("src/configurators")).toBe(false);
+    expect(isManagedPath(".opencode/config.json")).toBe(false);
+    expect(isManagedPath(".omp/extensions/trellis/index.ts")).toBe(false);
+    expect(isManagedPath(".github/copilot/hooks.json")).toBe(false);
   });
 
   // Windows path separator (bug fix verification)
@@ -144,15 +136,8 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".trellis\\spec\\backend")).toBe(true);
     expect(isManagedPath(".agents\\skills\\start\\SKILL.md")).toBe(true);
     expect(isManagedPath(".codex\\agents\\check.toml")).toBe(true);
-    expect(isManagedPath(".agent\\workflows\\start.md")).toBe(true);
-    expect(isManagedPath(".kiro\\skills\\start\\SKILL.md")).toBe(true);
-    expect(isManagedPath(".devin\\workflows\\trellis-start.md")).toBe(true);
-    expect(isManagedPath(".github\\prompts\\start.prompt.md")).toBe(true);
-    expect(isManagedPath(".github\\copilot\\hooks\\session-start.py")).toBe(
-      true,
-    );
-    expect(isManagedPath(".github\\hooks\\trellis.json")).toBe(true);
     expect(isManagedPath(".pi\\extensions\\trellis\\index.ts")).toBe(true);
+    expect(isManagedPath(".dsh\\skills\\trellis-start\\SKILL.md")).toBe(true);
   });
 
   // Mixed separators
@@ -178,14 +163,6 @@ describe("isManagedRootDir", () => {
 
   it("matches shared agent skills layer", () => {
     expect(isManagedRootDir(".agents/skills")).toBe(true);
-  });
-
-  it("matches copilot discovery hooks root", () => {
-    expect(isManagedRootDir(".github/hooks")).toBe(true);
-  });
-
-  it("matches copilot prompt root", () => {
-    expect(isManagedRootDir(".github/prompts")).toBe(true);
   });
 
   it("rejects sub-paths (not a root dir)", () => {
@@ -312,24 +289,9 @@ describe("collectPlatformTemplates", () => {
   const SKILL_ROOTS: Record<AITool, string> = {
     "claude-code": ".claude/skills",
     cursor: ".cursor/skills",
-    opencode: ".opencode/skills",
     codex: ".agents/skills",
-    kilo: ".kilocode/skills",
-    kiro: ".kiro/skills",
-    // Gemini CLI 0.40+ reads `.agents/skills/` as a workspace alias.
-    // Trellis writes there (shared with Codex) so a single skill set serves
-    // both platforms — eliminates duplicate-skill warnings (issue #224).
-    gemini: ".agents/skills",
-    antigravity: ".agent/skills",
-    devin: ".devin/skills",
-    qoder: ".qoder/skills",
-    codebuddy: ".codebuddy/skills",
-    copilot: ".github/skills",
-    droid: ".factory/skills",
-    // Pi discovers `.agents/skills/` natively; Trellis writes there (shared
-    // with Codex/Gemini) instead of a private `.pi/skills/` copy (#447).
     pi: ".agents/skills",
-    zcode: ".zcode/skills",
+    dsh: ".agents/skills",
   };
 
   it("does not throw for any platform", () => {
@@ -408,18 +370,6 @@ describe("collectPlatformTemplates", () => {
     }
   });
 
-  it("copilot collectTemplates includes both tracked and discovery config files", () => {
-    const result = collectPlatformTemplates("copilot");
-    expect(result).toBeInstanceOf(Map);
-    // Copilot is agent-capable → start.prompt.md is not generated.
-    expect(result?.has(".github/prompts/start.prompt.md")).toBe(false);
-    expect(result?.has(".github/prompts/finish-work.prompt.md")).toBe(true);
-    expect(result?.has(".github/prompts/continue.prompt.md")).toBe(true);
-    expect(result?.has(COPILOT_INSTRUCTIONS_PATH)).toBe(true);
-    expect(result?.has(".github/copilot/hooks.json")).toBe(true);
-    expect(result?.has(".github/hooks/trellis.json")).toBe(true);
-  });
-
   it("pi collectTemplates includes prompts, agents, extension, and settings", () => {
     const result = collectPlatformTemplates("pi");
     expect(result).toBeInstanceOf(Map);
@@ -430,81 +380,11 @@ describe("collectPlatformTemplates", () => {
     expect(result?.has(".pi/settings.json")).toBe(true);
   });
 
-  it("zcode collectTemplates includes only .zcode-owned skills", () => {
-    const result = collectPlatformTemplates("zcode");
-    expect(result).toBeInstanceOf(Map);
-    expect(
-      [...(result?.keys() ?? [])].some((key) =>
-        key.startsWith(".agents/skills/"),
-      ),
-    ).toBe(false);
-    expect(result?.has(".agents/skills/trellis-check/SKILL.md")).toBe(false);
-    expect(result?.has(".agents/skills/trellis-start/SKILL.md")).toBe(false);
-    expect(result?.has(".zcode/skills/trellis-start/SKILL.md")).toBe(false);
-    expect(result?.has(".zcode/skills/trellis-continue/SKILL.md")).toBe(false);
-    expect(result?.has(".zcode/skills/trellis-finish-work/SKILL.md")).toBe(
-      false,
-    );
-    expect(result?.has(".zcode/skills/trellis-before-dev/SKILL.md")).toBe(true);
-    expect(result?.has(".zcode/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(result?.has(".zcode/commands/trellis/start.md")).toBe(false);
-    expect(result?.has(".zcode/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".zcode/agents/trellis-check.md")).toBe(true);
-    expect(result?.has(".zcode/agents/trellis-research.md")).toBe(true);
-  });
-
-  it("grok collectTemplates includes flat commands and .grok-owned skills", () => {
-    const result = collectPlatformTemplates("grok");
-    expect(result).toBeInstanceOf(Map);
-    expect(
-      [...(result?.keys() ?? [])].some((key) =>
-        key.startsWith(".agents/skills/"),
-      ),
-    ).toBe(false);
-    expect(result?.has(".grok/commands/trellis-start.md")).toBe(true);
-    expect(result?.has(".grok/commands/trellis-continue.md")).toBe(true);
-    expect(result?.has(".grok/commands/trellis/start.md")).toBe(false);
-    expect(result?.has(".grok/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(result?.has(".grok/skills/trellis-before-dev/SKILL.md")).toBe(true);
-    expect(result?.has(".grok/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".grok/agents/trellis-check.md")).toBe(true);
-    expect(result?.has(".grok/agents/trellis-research.md")).toBe(true);
-  });
-
-  it("kimi collectTemplates includes shared skills and .kimi-code skills", () => {
-    const result = collectPlatformTemplates("kimi");
-    expect(result).toBeInstanceOf(Map);
-    // Shared neutral skills
-    expect(result?.has(".agents/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(result?.has(".agents/skills/trellis-before-dev/SKILL.md")).toBe(
-      true,
-    );
+  it("dsh collectTemplates includes inline entry skills and shared skills", () => {
+    const result = collectPlatformTemplates("dsh");
+    expect(result?.has(".dsh/skills/trellis-start/SKILL.md")).toBe(true);
+    expect(result?.has(".dsh/skills/trellis-continue/SKILL.md")).toBe(true);
     expect(result?.has(".agents/skills/trellis-meta/SKILL.md")).toBe(true);
-    // Kimi-private entry points + agent prompts
-    expect(result?.has(".kimi-code/skills/trellis-start/SKILL.md")).toBe(true);
-    expect(result?.has(".kimi-code/skills/trellis-continue/SKILL.md")).toBe(
-      true,
-    );
-    expect(
-      result?.has(".kimi-code/skills/trellis-finish-work/SKILL.md"),
-    ).toBe(true);
-    expect(
-      result?.has(".kimi-code/skills/trellis-implement/SKILL.md"),
-    ).toBe(true);
-    expect(result?.has(".kimi-code/skills/trellis-check/SKILL.md")).toBe(true);
-    expect(
-      result?.has(".kimi-code/skills/trellis-research/SKILL.md"),
-    ).toBe(true);
-    // Custom sub-agent definitions
-    expect(result?.has(".kimi-code/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".kimi-code/agents/trellis-check.md")).toBe(true);
-    expect(result?.has(".kimi-code/agents/trellis-research.md")).toBe(true);
-    // No project-level hooks/settings for Kimi
-    expect(
-      [...(result?.keys() ?? [])].some((key) =>
-        key.startsWith(".kimi-code/hooks"),
-      ),
-    ).toBe(false);
-    expect(result?.has(".kimi-code/settings.json")).toBe(false);
+    expect(result?.has(".dsh/hooks.json")).toBe(false);
   });
 });

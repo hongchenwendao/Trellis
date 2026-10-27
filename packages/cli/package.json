@@ -1,13 +1,12 @@
 {
-  "name": "@mindfoldhq/trellis",
-  "version": "0.6.17",
+  "name": "@mokshaall/trellis",
+  "version": "0.6.18-beta.0",
   "description": "AI capabilities grow like ivy — Trellis provides the structure to guide them along a disciplined path",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "trellis": "./bin/trellis.js",
-    "tl": "./bin/trellis.js"
+    "moksha-trellis": "./bin/trellis.js"
   },
   "publishConfig": {
     "access": "public"
@@ -28,7 +27,7 @@
     "typecheck": "tsc --noEmit",
     "lint:py": "basedpyright",
     "lint:all": "pnpm lint && pnpm lint:py",
-    "prepublishOnly": "pnpm test && pnpm run build && cp ../../README.md ../../LICENSE .",
+    "prepack": "node ../../scripts/copy-package-assets.mjs",
     "release": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major",
@@ -52,14 +51,14 @@
   "author": "Mindfold LLC",
   "license": "AGPL-3.0-only",
   "dependencies": {
-    "@mindfoldhq/trellis-core": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "figlet": "^1.9.4",
     "giget": "^3.1.1",
     "inquirer": "^9.3.7",
     "undici": "^6.21.0",
-    "zod": "^4.4.2"
+    "zod": "^4.4.2",
+    "@mokshaall/trellis-core": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -81,10 +80,13 @@
     "dist",
     "bin",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "COPYRIGHT",
+    "NOTICE"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mindfold-ai/trellis.git"
-  }
+    "url": "https://github.com/hongchenwendao/Trellis.git"
+  },
+  "homepage": "https://github.com/hongchenwendao/Trellis"
 }

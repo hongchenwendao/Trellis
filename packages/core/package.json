@@ -1,6 +1,6 @@
 {
-  "name": "@mindfoldhq/trellis-core",
-  "version": "0.6.17",
+  "name": "@mokshaall/trellis-core",
+  "version": "0.6.18-beta.0",
   "description": "Trellis core SDK — channel and task domain primitives consumed by the Trellis CLI and downstream Node services",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,15 +34,19 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "COPYRIGHT",
+    "NOTICE"
   ],
   "sideEffects": false,
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "scripts": {
     "build": "pnpm run clean && tsc",
+    "prepack": "node ../../scripts/copy-package-assets.mjs",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "dev": "tsc --watch",
     "test": "vitest run",
@@ -73,6 +77,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mindfold-ai/trellis.git"
-  }
+    "url": "https://github.com/hongchenwendao/Trellis.git"
+  },
+  "homepage": "https://github.com/hongchenwendao/Trellis"
 }

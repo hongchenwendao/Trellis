@@ -1,0 +1,10 @@
+Trellis — modified fork
+
+Original work: Copyright (c) Mindfold LLC. The original LICENSE and COPYRIGHT
+files are retained with this distribution.
+
+Modified by mokshaall on 2026-10-27. This fork reduces the supported platform
+integrations to Claude Code, Codex, Cursor, Pi, and dsh; publishes the CLI and
+core packages under the @mokshaall npm scope; and exposes the CLI as
+`moksha-trellis` instead of `trellis` or `tl`. Internal .trellis/ paths,
+Trellis slash commands, skills, and agent names remain unchanged.

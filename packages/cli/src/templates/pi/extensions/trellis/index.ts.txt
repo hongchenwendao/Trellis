@@ -1931,7 +1931,7 @@ export default function trellisExtension(pi: {
                 "- Install a community subagent package: pi install -l npm:@tintinweb/pi-subagents",
             },
           ],
-          details: { agent: agentName, error: "not a trellis workflow agent" },
+          details: { agent: agentName, error: "not a moksha-trellis workflow agent" },
         };
       }
       const mode = input.mode ?? "single";

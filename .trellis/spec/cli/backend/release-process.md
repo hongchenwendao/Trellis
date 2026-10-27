@@ -6,14 +6,61 @@
 
 ## Overview
 
-Trellis publishes two npm packages from one git tag:
+This `personal` fork prepares `@mokshaall/trellis` and
+`@mokshaall/trellis-core` as a version-locked pair. Its first release is
+`0.6.18-beta.0` on the `beta` npm dist-tag. The operator publishes local
+tarballs, core before CLI; no git tag or CI publish is part of this path.
+
+The upstream release process below applies only to the official repository:
 
 | Package | Role | Published by |
 |---|---|---|
 | `@mindfoldhq/trellis` | User-facing CLI | GitHub Actions only |
 | `@mindfoldhq/trellis-core` | Programmatic core APIs used by the CLI and external integrations | GitHub Actions only |
 
-The package pair is version-locked. Every published version must exist for both packages with the exact same version and npm dist-tag.
+Both lines require matching core and CLI versions and npm dist-tags.
+
+## Personal fork: local beta tarballs
+
+From the `personal` branch, use the locked dependencies and run the existing
+checks before packing. `prepack` copies the root README, LICENSE, COPYRIGHT,
+and fork NOTICE into each package; build and tests run once before packing.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm typecheck && pnpm lint
+pnpm build
+pnpm test
+mkdir -p artifacts/npm
+(cd packages/core && pnpm pack --pack-destination ../../artifacts/npm)
+(cd packages/cli && pnpm pack --pack-destination ../../artifacts/npm)
+node packages/cli/scripts/release-preflight.js check-versions
+node packages/cli/scripts/release-preflight.js verify-packed-cli
+node packages/cli/scripts/release-preflight.js npm-tag # beta
+```
+
+Inspect the two actual tarballs before publishing. The CLI must pin
+`@mokshaall/trellis-core` to exactly `0.6.18-beta.0`, contain only the
+`moksha-trellis` bin, and include README, LICENSE, COPYRIGHT, and NOTICE.
+Install both tarballs into an isolated temporary prefix and exercise init,
+update, and `upgrade --dry-run` before using npm publication commands.
+
+```bash
+export NPM_CONFIG_CACHE="$(mktemp -d /private/tmp/trellis-npm-publish.XXXXXX)"
+npm publish artifacts/npm/mokshaall-trellis-core-0.6.18-beta.0.tgz --tag beta --access public --no-provenance --dry-run
+npm publish artifacts/npm/mokshaall-trellis-0.6.18-beta.0.tgz --tag beta --access public --no-provenance --dry-run
+# After checking the dry runs and authenticating, publish core first.
+npm publish artifacts/npm/mokshaall-trellis-core-0.6.18-beta.0.tgz --tag beta --access public --no-provenance
+npm view @mokshaall/trellis-core@beta version --prefer-online --registry=https://registry.npmjs.org/ # expect 0.6.18-beta.0; wait until visible
+npm publish artifacts/npm/mokshaall-trellis-0.6.18-beta.0.tgz --tag beta --access public --no-provenance
+```
+
+Complete npm's authentication and OTP prompts for each publish; never store
+credentials in source or logs. This workstation's default npm cache is
+unwritable, so the temporary cache above avoids changing global npm settings.
+The fork does not use cloud provenance. `.github/workflows/publish.yml`
+is guarded to run only for `mindfold-ai/Trellis`, and the upstream
+`release.js` command commits, tags, and pushes, so neither is this path.
 
 ---
 

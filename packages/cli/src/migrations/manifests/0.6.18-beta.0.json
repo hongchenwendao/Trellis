@@ -1,0 +1,9 @@
+{
+  "version": "0.6.18-beta.0",
+  "description": "First personal fork beta with five supported platforms and moksha-trellis command",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "The personal fork supports Claude Code, Codex, Cursor, Pi, and dsh; packages are published under @mokshaall and the CLI command is moksha-trellis.",
+  "migrations": [],
+  "notes": "No automatic file migrations are required for this first personal beta. Existing retired-platform files are left untouched."
+}

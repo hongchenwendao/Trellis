@@ -1,0 +1,8 @@
+{"file":".trellis/spec/cli/backend/platform-integration.md","reason":"Registry, configurator, init and platform integration contracts."}
+{"file":".trellis/spec/cli/backend/commands-update.md","reason":"Update ordering, dry-run, conflicts and migration behavior."}
+{"file":".trellis/spec/cli/backend/filesystem-safety.md","reason":"Preserve user data, ownership and template/dogfood boundaries."}
+{"file":".trellis/spec/cli/backend/migrations.md","reason":"Keep historical migrations while restricting retired exclusive targets."}
+{"file":".trellis/spec/cli/backend/commands-uninstall.md","reason":"Prevent unsafe legacy-ownership removal after registry shrinkage."}
+{"file":".trellis/spec/cli/backend/commands-ablate.md","reason":"Preserve reversible removal contracts and guard legacy unsupported records."}
+{"file":".trellis/spec/cli/backend/script-conventions.md","reason":"Shared Python runtime and template/dogfood synchronization."}
+{"file":".trellis/spec/cli/unit-test/conventions.md","reason":"Retain meaningful shared regression coverage and fixture isolation."}

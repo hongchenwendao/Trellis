@@ -42,6 +42,7 @@ import {
   type ManagedRemovalPlan,
 } from "../utils/managed-removal.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
+import { getRetiredOwnedManifestKeys } from "../constants/retired-platform-paths.js";
 import { loadHashes } from "../utils/template-hash.js";
 
 export interface AblateOptions {
@@ -362,7 +363,7 @@ export async function ablate(options: AblateOptions = {}): Promise<void> {
   const transactionPaths = getTransactionPaths(projectRoot, stateRoot);
   if (fs.existsSync(transactionPaths.transactionDir)) {
     throw new Error(
-      "This project is already ablated or has an interrupted ablation. Run `trellis restore` first.",
+      "This project is already ablated or has an interrupted ablation. Run `moksha-trellis restore` first.",
     );
   }
 
@@ -374,11 +375,20 @@ export async function ablate(options: AblateOptions = {}): Promise<void> {
   const hashes = loadHashes(projectRoot);
   if (Object.keys(hashes).length === 0) {
     throw new Error(
-      "Trellis manifest is missing or not v2. Run the current `trellis update` before ablation.",
+      "Trellis manifest is missing or not v2. Run the current `moksha-trellis update` before ablation.",
     );
   }
 
   const configuredPlatforms = getConfiguredPlatforms(projectRoot);
+  const retiredOwned = getRetiredOwnedManifestKeys(hashes, [
+    ...configuredPlatforms,
+  ]);
+  if (retiredOwned.length > 0) {
+    throw new Error(
+      `Cannot ablate: ${retiredOwned.length} tracked file(s) belong to retired platform adapters. ` +
+        "Use the original Trellis CLI to remove those adapters first; this fork will not delete or orphan them.",
+    );
+  }
   const { hashes: prunedManifest, pruned } = pruneOrphanManifestKeys(
     projectRoot,
     [...configuredPlatforms],
@@ -426,7 +436,7 @@ export async function ablate(options: AblateOptions = {}): Promise<void> {
   withAblationProjectLock(transactionPaths, () => {
     if (lstatIfPresent(transactionPaths.transactionDir)) {
       throw new Error(
-        "This project is already ablated or has an interrupted ablation. Run `trellis restore` first.",
+        "This project is already ablated or has an interrupted ablation. Run `moksha-trellis restore` first.",
       );
     }
     const transaction = stageAblationTransaction(

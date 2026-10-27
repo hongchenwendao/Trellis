@@ -46,7 +46,7 @@ from .paths import (
 # Helpers
 # =============================================================================
 
-_PACKAGE_NAME = "@mindfoldhq/trellis"
+_PACKAGE_NAME = "@mokshaall/trellis"
 _UPDATE_CHECK_TIMEOUT_SECONDS = 1.0
 _VERSION_RE = re.compile(
     r"^\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?\s*$"
@@ -331,7 +331,7 @@ def _read_project_version(repo_root: Path) -> str | None:
 def _fetch_trellis_version_output() -> str | None:
     try:
         result = subprocess.run(
-            ["trellis", "--version"],
+            ["moksha-trellis", "--version"],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -483,7 +483,7 @@ def get_update_hint(repo_root: Path, context_key: str | None = None) -> str | No
 
     return (
         f"Trellis update available: {current_version} -> {latest_version}, "
-        "run trellis update"
+        "run moksha-trellis update"
     )
 
 

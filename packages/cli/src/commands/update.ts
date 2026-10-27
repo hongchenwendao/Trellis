@@ -7,6 +7,7 @@ import inquirer from "inquirer";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
 import type { AITool } from "../types/ai-tools.js";
 import { VERSION, PACKAGE_NAME } from "../constants/version.js";
+import { resolveUpgradeTag } from "./upgrade.js";
 import {
   getMigrationsForVersion,
   getAllMigrations,
@@ -46,12 +47,6 @@ import {
   workflowMdTemplate,
 } from "../templates/trellis/index.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
-import {
-  COPILOT_INSTRUCTIONS_BLOCK_END,
-  COPILOT_INSTRUCTIONS_BLOCK_START,
-  COPILOT_INSTRUCTIONS_PATH,
-  getCopilotInstructions,
-} from "../templates/copilot/index.js";
 
 import {
   ALL_MANAGED_DIRS,
@@ -60,7 +55,12 @@ import {
 } from "../configurators/index.js";
 import { replacePythonCommandLiterals } from "../configurators/shared.js";
 import { preserveCodexAgentModelKeys } from "../configurators/codex.js";
-import { printZcodeSetupHint } from "../configurators/zcode.js";
+import {
+  getRetiredOwnedManifestKeys,
+  getRetainedInstallationsWithoutHashes,
+  hasRetiredInstallationMarker,
+  migrationTargetsSupportedPlatforms,
+} from "../constants/retired-platform-paths.js";
 import { ensureGitattributes } from "../configurators/workflow.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import {
@@ -245,16 +245,6 @@ function buildAgentsMdTemplate(cwd: string): string {
   );
 }
 
-function buildCopilotInstructionsTemplate(cwd: string): string {
-  return buildManagedBlockTemplate(
-    cwd,
-    COPILOT_INSTRUCTIONS_PATH,
-    getCopilotInstructions(),
-    COPILOT_INSTRUCTIONS_BLOCK_START,
-    COPILOT_INSTRUCTIONS_BLOCK_END,
-  );
-}
-
 function isKnownUntrackedTemplate(
   relativePath: string,
   existingContent: string,
@@ -269,35 +259,6 @@ function isKnownUntrackedTemplate(
   }
 
   return LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES.has(computeHash(managedBlock));
-}
-
-function isSafeUntrackedCopilotInstructionsMerge(
-  relativePath: string,
-  existingContent: string,
-  newContent: string,
-): boolean {
-  if (relativePath !== COPILOT_INSTRUCTIONS_PATH) {
-    return false;
-  }
-
-  if (
-    getManagedBlock(
-      existingContent,
-      COPILOT_INSTRUCTIONS_BLOCK_START,
-      COPILOT_INSTRUCTIONS_BLOCK_END,
-    )
-  ) {
-    return false;
-  }
-
-  return (
-    mergeManagedBlockContent(
-      existingContent,
-      getCopilotInstructions(),
-      COPILOT_INSTRUCTIONS_BLOCK_START,
-      COPILOT_INSTRUCTIONS_BLOCK_END,
-    ) === newContent
-  );
 }
 
 /**
@@ -750,7 +711,7 @@ function preserveExistingRegistryConfig(cwd: string, template: string): string {
     "#-------------------------------------------------------------------------------\n" +
     "# Registry\n" +
     "#-------------------------------------------------------------------------------\n\n" +
-    "# Source used to install .trellis/spec. trellis update refreshes this\n" +
+    "# Source used to install .trellis/spec. moksha-trellis update refreshes this\n" +
     "# hash-tracked spec template while preserving local edits through the\n" +
     "# normal update conflict flow.\n" +
     "registry:\n" +
@@ -880,7 +841,7 @@ async function collectTemplateFiles(
   }
 
   // Channel runtime agent definitions (single source of truth: getAllAgents()).
-  // Backfilled by `trellis update` if missing so users who installed before the
+  // Backfilled by `moksha-trellis update` if missing so users who installed before the
   // bundled agents existed pick them up. Edited files take the standard
   // modified-file prompt path.
   for (const [agentFile, content] of getAllAgents()) {
@@ -911,12 +872,6 @@ async function collectTemplateFiles(
     if (platformFiles) {
       for (const [filePath, content] of platformFiles) {
         files.set(filePath, content);
-      }
-      if (platformId === "copilot") {
-        files.set(
-          COPILOT_INSTRUCTIONS_PATH,
-          buildCopilotInstructionsTemplate(cwd),
-        );
       }
     }
   }
@@ -1018,13 +973,7 @@ function analyzeChanges(
         if (
           (storedHash && storedHash === currentHash) ||
           (!storedHash &&
-            isKnownUntrackedTemplate(relativePath, existingContent)) ||
-          (!storedHash &&
-            isSafeUntrackedCopilotInstructionsMerge(
-              relativePath,
-              existingContent,
-              newContent,
-            ))
+            isKnownUntrackedTemplate(relativePath, existingContent))
         ) {
           // Either the tracked hash matches, or this is a known pristine template
           // from before the path was hash-tracked. Safe to auto-update.
@@ -1050,7 +999,7 @@ function analyzeChanges(
  * Nothing else repairs these. `analyzeChanges` classifies such a file
  * `unchanged`, and the write-back draws only from `newFiles`,
  * `autoUpdateFiles` and overwritten `changedFiles` — so a poisoned or absent
- * entry beside a pristine file survives every subsequent `trellis update`,
+ * entry beside a pristine file survives every subsequent `moksha-trellis update`,
  * however many times it is run. Identical template content across versions is
  * not what saves such an entry from going stale; it is precisely what freezes
  * it, because the file never leaves the `unchanged` bucket.
@@ -1062,7 +1011,7 @@ function analyzeChanges(
  * `changedFiles`, and is never seen by this function.
  *
  * That also leaves the mixed-ownership paths — `AGENTS.md`,
- * `.github/copilot-instructions.md`, `.trellis/config.yaml` — free to differ
+ * `.trellis/config.yaml` — free to differ
  * from their recorded hash, which for them is the correct state: once the
  * repository has appended its own content they are no longer `unchanged`.
  */
@@ -1277,7 +1226,7 @@ const BACKUP_EXCLUDE_PATTERNS = [
   // snapshot the entire nested working tree. Confirmed conventions:
   //   Claude Code: .claude/worktrees/
   //   Cursor CLI:  .cursor/worktrees/
-  //   Gemini CLI:  .gemini/worktrees/
+  //   Some hosts keep nested worktrees under their project config directory.
   // Matches any platform using the same convention (future-proof).
   "/worktrees/",
   "/worktree/",
@@ -1373,7 +1322,7 @@ function getInstalledVersion(cwd: string): string {
 async function getLatestNpmVersion(): Promise<string | null> {
   try {
     const response = await fetch(
-      `https://registry.npmjs.org/${PACKAGE_NAME}/latest`,
+      `https://registry.npmjs.org/${PACKAGE_NAME}/${resolveUpgradeTag(VERSION)}`,
     );
     if (!response.ok) {
       return null;
@@ -2099,7 +2048,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Check if Trellis is initialized
   if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
     console.log(chalk.red("Error: Trellis not initialized in this directory."));
-    console.log(chalk.gray("Run 'trellis init' first."));
+    console.log(chalk.gray("Run 'moksha-trellis init' first."));
     return;
   }
 
@@ -2137,7 +2086,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         `⚠️  Your CLI (${cliVersion}) is behind npm (${latestNpmVersion}).`,
       ),
     );
-    console.log(chalk.yellow(`   Run: trellis upgrade\n`));
+    console.log(chalk.yellow(`   Run: moksha-trellis upgrade\n`));
   }
 
   // Check for downgrade situation
@@ -2151,9 +2100,11 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     if (!options.allowDowngrade) {
       console.log(chalk.gray("Solutions:"));
-      console.log(chalk.gray(`  1. Update your CLI: trellis upgrade`));
+      console.log(chalk.gray(`  1. Update your CLI: moksha-trellis upgrade`));
       console.log(
-        chalk.gray(`  2. Force downgrade: trellis update --allow-downgrade\n`),
+        chalk.gray(
+          `  2. Force downgrade: moksha-trellis update --allow-downgrade\n`,
+        ),
       );
       return;
     }
@@ -2169,15 +2120,56 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Load template hashes for modification detection
   let hashes = loadHashes(cwd);
-  const zcodeConfigured = getConfiguredPlatforms(cwd).has("zcode");
   const isFirstHashTracking = Object.keys(hashes).length === 0;
+  const supportedPlatforms = getConfiguredPlatforms(cwd);
+  if (isFirstHashTracking) {
+    for (const id of getRetainedInstallationsWithoutHashes(cwd)) {
+      supportedPlatforms.add(id);
+    }
+  }
+
+  // Detect legacy Codex before checking whether this project has any retained
+  // adapter: older Codex installations may have only shared skill markers.
+  const codexUpgradeNeeded = needsCodexUpgrade(cwd);
+  if (codexUpgradeNeeded) supportedPlatforms.add("codex");
+
+  const retiredOwned = getRetiredOwnedManifestKeys(hashes, [
+    ...supportedPlatforms,
+  ]);
+  const hasRetiredMarker = hasRetiredInstallationMarker(cwd);
+  if (
+    supportedPlatforms.size === 0 &&
+    (retiredOwned.length > 0 || hasRetiredMarker)
+  ) {
+    console.error(
+      chalk.yellow(
+        "No supported platform is configured. This fork updates Claude Code, Codex, Cursor, Pi, and dsh only. " +
+          "Add one of those platforms with `moksha-trellis init --<flag>`, or use the original Trellis CLI to update the existing adapters.",
+      ),
+    );
+    return;
+  }
+  if (retiredOwned.length > 0) {
+    console.log(
+      chalk.yellow(
+        `Keeping ${retiredOwned.length} retired-platform ownership record(s) and their files unchanged. ` +
+          "This update advances the project version for shared assets and supported platforms only.",
+      ),
+    );
+  } else if (hasRetiredMarker) {
+    console.log(
+      chalk.yellow(
+        "Retired-platform files were detected without ownership records; leaving them unchanged while updating supported platforms.",
+      ),
+    );
+  }
 
   // Handle unknown version - skip regular migrations but safe-file-delete still runs
   const isUnknownVersion = projectVersion === "unknown";
   if (isUnknownVersion) {
     console.log(
       chalk.yellow(
-        "⚠️  No version file found. Skipping migrations — run trellis init to fix.",
+        "⚠️  No version file found. Skipping migrations — run moksha-trellis init to fix.",
       ),
     );
     console.log(chalk.gray("   Template updates will still be applied."));
@@ -2191,7 +2183,6 @@ export async function update(options: UpdateOptions): Promise<void> {
   // detector reads the raw manifest looking for .agents/skills/ markers that
   // the prune step would otherwise consider orphans (codex hasn't been added
   // to configuredPlatforms yet at this point).
-  const codexUpgradeNeeded = needsCodexUpgrade(cwd);
   if (codexUpgradeNeeded) {
     console.log(
       chalk.yellow(
@@ -2202,17 +2193,11 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Self-heal poisoned manifests: prune entries that no current platform
   // configurator owns. This silently removes user-owned paths that early
-  // buggy versions of `trellis init` over-hashed (e.g. .codex/sessions/*).
+  // buggy versions of `moksha-trellis init` over-hashed (e.g. .codex/sessions/*).
   // Include codex in known-platforms when codexUpgradeNeeded so legacy Codex
   // markers under .agents/skills/ survive into the upgrade flow.
   {
-    const configuredPlatforms = new Set<AITool>(getConfiguredPlatforms(cwd));
-    if (codexUpgradeNeeded) configuredPlatforms.add("codex");
-    const prune = pruneOrphanManifestKeys(
-      cwd,
-      [...configuredPlatforms],
-      hashes,
-    );
+    const prune = pruneOrphanManifestKeys(cwd, [...supportedPlatforms], hashes);
     if (prune.pruned.length > 0) {
       console.log(
         chalk.gray(
@@ -2243,7 +2228,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Collect templates (used for both migration classification and change analysis)
   const templates = await collectTemplateFiles(
     cwd,
-    codexUpgradeNeeded ? new Set<AITool>(["codex"]) : undefined,
+    supportedPlatforms,
     breakingBypass,
   );
 
@@ -2252,7 +2237,9 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Collect safe-file-delete items from ALL manifests (hash match is the safety net)
   // This runs regardless of version — unknown version still gets safe cleanup
-  const allMigrations = getAllMigrations();
+  const allMigrations = getAllMigrations().filter((item) =>
+    migrationTargetsSupportedPlatforms(item, supportedPlatforms),
+  );
   const safeFileDeletes = collectSafeFileDeletes(
     allMigrations,
     cwd,
@@ -2266,7 +2253,9 @@ export async function update(options: UpdateOptions): Promise<void> {
   // Check for pending regular migrations (skip if unknown version)
   let pendingMigrations = isUnknownVersion
     ? []
-    : getMigrationsForVersion(projectVersion, cliVersion);
+    : getMigrationsForVersion(projectVersion, cliVersion).filter((item) =>
+        migrationTargetsSupportedPlatforms(item, supportedPlatforms),
+      );
 
   // Also check for "orphaned" migrations - where source still exists but version says we shouldn't migrate
   // This handles cases where version was updated but migrations weren't applied
@@ -2343,7 +2332,7 @@ export async function update(options: UpdateOptions): Promise<void> {
             ),
         );
         console.log("");
-        console.log(chalk.yellow(`  Run: trellis update --migrate`));
+        console.log(chalk.yellow(`  Run: moksha-trellis update --migrate`));
         console.log("");
         console.log(
           chalk.gray(
@@ -2463,7 +2452,6 @@ export async function update(options: UpdateOptions): Promise<void> {
         );
       }
     }
-    if (zcodeConfigured) printZcodeSetupHint();
     return;
   }
 
@@ -2836,7 +2824,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         prdContent += `**From Version**: ${projectVersion}\n`;
         prdContent += `**To Version**: ${cliVersion}\n`;
         prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
-        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`trellis update --migrate\`\n- [ ] Test workflows\n\n`;
+        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`moksha-trellis update --migrate\`\n- [ ] Test workflows\n\n`;
 
         for (const {
           version,
@@ -2880,8 +2868,6 @@ export async function update(options: UpdateOptions): Promise<void> {
       }
     }
   }
-
-  if (zcodeConfigured) printZcodeSetupHint();
 
   // Display breaking change warnings at the very end (so they don't scroll off screen)
   if (cliVsProject > 0 && projectVersion !== "unknown") {

@@ -27,6 +27,7 @@ import inquirer from "inquirer";
 import { DIR_NAMES } from "../constants/paths.js";
 import { loadHashes } from "../utils/template-hash.js";
 import { getConfiguredPlatforms } from "../configurators/index.js";
+import { getRetiredOwnedManifestKeys } from "../constants/retired-platform-paths.js";
 import { pruneOrphanManifestKeys } from "../utils/manifest-prune.js";
 import {
   isCwdHomedir,
@@ -194,6 +195,20 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
     process.exit(1);
   }
 
+  const configuredPlatforms = getConfiguredPlatforms(cwd);
+  const retiredOwned = getRetiredOwnedManifestKeys(hashes, [
+    ...configuredPlatforms,
+  ]);
+  if (retiredOwned.length > 0) {
+    console.error(
+      chalk.red(
+        `Cannot uninstall: ${retiredOwned.length} tracked file(s) belong to retired platform adapters. ` +
+          "Use the original Trellis CLI to remove those adapters first; this fork will not delete or orphan them.",
+      ),
+    );
+    process.exit(1);
+  }
+
   // Self-heal poisoned manifests from buggy init versions: prune any manifest
   // entry that no current configurator owns. Runs BEFORE buildPlan so the
   // user-owned paths (.codex/sessions/, .claude/projects/, pre-existing
@@ -204,7 +219,6 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   // disk write defers to executePlan time, where we'd be rewriting the
   // manifest only to delete the whole .trellis/ dir anyway — but the
   // computation must remain to keep the rendered plan honest.
-  const configuredPlatforms = getConfiguredPlatforms(cwd);
   const { pruned, hashes: prunedHashes } = pruneOrphanManifestKeys(
     cwd,
     [...configuredPlatforms],

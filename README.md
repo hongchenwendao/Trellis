@@ -13,23 +13,18 @@
 
 <p align="center">
 <a href="./README_CN.md">简体中文</a> •
-<a href="https://docs.trytrellis.app/">Docs</a> •
-<a href="https://docs.trytrellis.app/start/install-and-first-task">Quick Start</a> •
-<a href="https://docs.trytrellis.app/advanced/multi-platform">Supported Platforms</a> •
+<a href="https://docs.trytrellis.app/">Upstream Docs</a> •
+<a href="#quick-start">Quick Start</a> •
+<a href="#supported-platforms">Supported Platforms</a> •
 <a href="https://docs.trytrellis.app/start/real-world-scenarios">Use Cases</a>
 </p>
 
 <p align="center">
-<a href="https://www.npmjs.com/package/@mindfoldhq/trellis"><img src="https://img.shields.io/npm/v/@mindfoldhq/trellis.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
-<a href="https://www.npmjs.com/package/@mindfoldhq/trellis"><img src="https://img.shields.io/npm/dw/@mindfoldhq/trellis?style=flat-square&color=cb3837&label=downloads" alt="npm downloads" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/stargazers"><img src="https://img.shields.io/github/stars/mindfold-ai/Trellis?style=flat-square&color=eab308" alt="stars" /></a>
-<a href="https://docs.trytrellis.app/"><img src="https://img.shields.io/badge/docs-trytrellis.app-0f766e?style=flat-square" alt="docs" /></a>
-<a href="https://discord.com/invite/tWcCZ3aRHc"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/issues"><img src="https://img.shields.io/github/issues/mindfold-ai/Trellis?style=flat-square&color=e67e22" alt="open issues" /></a>
-<a href="https://github.com/mindfold-ai/Trellis/pulls"><img src="https://img.shields.io/github/issues-pr/mindfold-ai/Trellis?style=flat-square&color=9b59b6" alt="open PRs" /></a>
-<a href="https://deepwiki.com/mindfold-ai/Trellis"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" alt="Ask DeepWiki" /></a>
-<a href="https://chatgpt.com/?q=Explain+the+project+mindfold-ai/Trellis+on+GitHub"><img src="https://img.shields.io/badge/Ask-ChatGPT-74aa9c?style=flat-square&logo=openai&logoColor=white" alt="Ask ChatGPT" /></a>
+<a href="https://www.npmjs.com/package/@mokshaall/trellis"><img src="https://img.shields.io/npm/v/@mokshaall/trellis.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
+<a href="https://github.com/hongchenwendao/Trellis/blob/personal/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
+<a href="https://github.com/hongchenwendao/Trellis"><img src="https://img.shields.io/badge/fork-hongchenwendao%2FTrellis-181717?style=flat-square" alt="fork" /></a>
+<a href="https://github.com/mindfold-ai/Trellis"><img src="https://img.shields.io/badge/upstream-mindfold--ai%2FTrellis-blue?style=flat-square" alt="upstream" /></a>
+<a href="https://docs.trytrellis.app/"><img src="https://img.shields.io/badge/docs-upstream-0f766e?style=flat-square" alt="upstream docs" /></a>
 </p>
 
 <p align="center">
@@ -44,7 +39,29 @@
 | **Task-centered workflow** | Keep PRDs, implementation context, review context, and task status in `.trellis/tasks/` so AI work stays structured. |
 | **Project memory** | Journals in `.trellis/workspace/` preserve what happened last time, so each new session starts with real context. |
 | **Team-shared standards** | Specs live in the repo, so one person's hard-won workflow or rule can benefit the whole team. |
-| **Multi-platform setup** | Bring the same Trellis structure to 22 AI coding platforms instead of rebuilding your workflow per tool. |
+| **Multi-platform setup** | Bring the same Trellis structure to 5 AI coding platforms instead of rebuilding your workflow per tool. |
+
+## Supported Platforms
+
+This personal fork supports only these installation adapters:
+
+| Platform | ID | Init flag |
+| --- | --- | --- |
+| Claude Code | `claude-code` | `--claude` |
+| Codex | `codex` | `--codex` |
+| Cursor | `cursor` | `--cursor` |
+| Pi Agent | `pi` | `--pi` |
+| DeepSeek Harness | `dsh` | `--dsh` |
+
+Pi Agent is not Oh My Pi (`omp`). Shared specs, tasks, skills and workflows
+remain available. Codex keeps its auto/inline modes; dsh uses the inline route.
+
+Updates maintain the supported adapters and shared content. Existing retired
+adapter files are left unchanged, not uninstalled. Projects containing only
+retired adapters must add a supported platform before updating. Removal commands
+stop if retired managed assets prevent safe cleanup. Historical session readers
+remain available independently of installation support, so existing logs can
+still be searched.
 
 ## Prerequisites:
 
@@ -54,17 +71,22 @@
 ## Quick Start
 
 ```bash
-# 1. Install Trellis
-npm install -g @mindfoldhq/trellis@latest
+# 1. Install this fork
+npm install -g @mokshaall/trellis@beta
 
-# 2. Initialize in your repo
-trellis init -u your-name
+# 2. Initialize your project with the platforms you use
+cd /path/to/your-project
+moksha-trellis init --claude --codex --cursor --pi --dsh -u your-name
 
-# 3. Or initialize with the platforms you actually use
-trellis init --cursor --opencode --codex -u your-name
+# 3. Update that project later
+moksha-trellis update
 ```
 
-See the [Quick Start](https://docs.trytrellis.app/start/install-and-first-task) and [Supported Platforms](https://docs.trytrellis.app/advanced/multi-platform) guides for setup details.
+`moksha-trellis` is the only terminal command this fork installs; `trellis` and
+`tl` are not provided. Pass only the platform flags you need. The upstream
+`@mindfoldhq/trellis` package and the linked online docs, `docs-site` and
+`marketplace` submodules are upstream resources; their platform lists may
+differ. Use the table above for this fork's support boundary.
 
 ## How to Use
 
@@ -88,8 +110,8 @@ Trellis runs a 4-phase loop with auto-invoked skills and sub-agents:
 
 | Need                            | Link                                                                           |
 | ------------------------------- | ------------------------------------------------------------------------------ |
-| Install Trellis in a repo       | [Quick Start](https://docs.trytrellis.app/start/install-and-first-task)        |
-| Understand platform differences | [Supported Platforms](https://docs.trytrellis.app/advanced/multi-platform)     |
+| Use this local fork in a repo | [Quick Start](#quick-start) |
+| Check this fork's platform support | [Supported Platforms](#supported-platforms) |
 | See the workflow in practice    | [Real-World Scenarios](https://docs.trytrellis.app/start/real-world-scenarios) |
 | Start from spec templates       | [Spec Templates](https://docs.trytrellis.app/templates/specs-index)            |
 | Track releases                  | [Changelog](https://docs.trytrellis.app/changelog)                             |

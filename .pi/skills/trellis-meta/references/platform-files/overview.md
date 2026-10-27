@@ -5,7 +5,7 @@ Trellis connects the same local architecture to different AI tools. `.trellis/` 
 When a local AI modifies Trellis, it should distinguish two file categories first:
 
 - **Shared files**: `.trellis/workflow.md`, `.trellis/tasks/`, `.trellis/spec/`, `.trellis/scripts/`.
-- **Platform files**: `.claude/`, `.codex/`, `.cursor/`, `.opencode/`, `.kiro/`, `.gemini/`, `.qoder/`, `.codebuddy/`, `.github/`, `.factory/`, `.pi/`, `.kilocode/`, `.agent/`, `.devin/`, `.reasonix/`, `.zcode/`, and similar directories.
+- **Platform files**: `.claude/`, `.codex/`, `.cursor/`, `.pi/`, and `.dsh/`. Older projects may retain files for retired platforms; `moksha-trellis update` does not automatically uninstall them.
 
 Platform files do not store business state. They let the corresponding AI tool read Trellis state, call Trellis scripts, and load Trellis skills/agents/hooks.
 
@@ -13,11 +13,11 @@ Platform files do not store business state. They let the corresponding AI tool r
 
 | Category | Common paths | Purpose |
 | --- | --- | --- |
-| settings/config | `.claude/settings.json`, `.codex/hooks.json`, `.qoder/settings.json` | Register hooks, plugins, extensions, or platform behavior. |
-| hooks/plugins/extensions | `.claude/hooks/`, `.opencode/plugins/`, `.pi/extensions/` | Inject context at session start, user input, agent startup, shell execution, and similar events. |
-| agents | `.claude/agents/`, `.codex/agents/`, `.kiro/agents/` | Define `trellis-research`, `trellis-implement`, and `trellis-check`. |
-| skills | `.claude/skills/`, `.agents/skills/`, `.qoder/skills/` | Capability descriptions that auto-trigger or can be read on demand. |
-| commands/prompts/workflows | `.cursor/commands/`, `.github/prompts/`, `.devin/workflows/` | Entry points explicitly invoked by the user. |
+| settings/config | `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json`, `.pi/settings.json` | Register hooks, extensions, or host behavior. |
+| hooks/extensions | `.claude/hooks/`, `.codex/hooks/`, `.cursor/hooks/`, `.pi/extensions/` | Inject context at session start, user input, agent startup, or shell execution. |
+| agents | `.claude/agents/`, `.codex/agents/`, `.cursor/agents/`, `.pi/agents/` | Define `trellis-research`, `trellis-implement`, and `trellis-check`. |
+| skills | `.claude/skills/`, `.cursor/skills/`, `.agents/skills/`, `.dsh/skills/` | Capability descriptions and dsh entry skills. |
+| commands/prompts | `.claude/commands/`, `.cursor/commands/`, `.pi/prompts/` | Entry points explicitly invoked by the user. |
 
 ## Three Platform Integration Modes
 
@@ -36,13 +36,13 @@ To change "when the AI knows what," inspect hooks/plugins/extensions and setting
 
 ### 2. Agent Prelude / Pull-Based
 
-Some platforms cannot reliably let hooks rewrite sub-agent prompts, so the agent file itself instructs the agent to read the active task, PRD, and JSONL context after startup.
+Codex has a child-side fallback when native `SubagentStart` context injection is unavailable. Pi's extension can also load context directly. Their agents can read the active task, PRD, and JSONL context after startup.
 
 To change how sub-agents load context, inspect the agent files themselves.
 
 ### 3. Main-Session Workflow
 
-Some platforms do not have Trellis sub-agent or hook capabilities. They rely on workflows/skills/commands to guide the main-session AI to read files, run scripts, and move tasks forward.
+dsh has no Trellis sub-agent or project-hook surface. Its skills guide the main-session AI to read files, run scripts, and move tasks forward. Codex can opt into the same inline route.
 
 To change behavior, inspect platform workflows/skills/commands and `.trellis/workflow.md`.
 

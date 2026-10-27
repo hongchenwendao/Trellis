@@ -203,45 +203,6 @@ export function scrubHooksJson(
 }
 
 /**
- * Scrub `.opencode/package.json`:
- * - remove `dependencies["@opencode-ai/plugin"]`
- * - if `dependencies` ends up empty → drop the field
- * - fully empty when nothing is left in the object
- */
-export function scrubOpencodePackageJson(content: string): ScrubResult {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    return { content, fullyEmpty: false };
-  }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { content, fullyEmpty: false };
-  }
-
-  const root = parsed as Record<string, unknown>;
-  const deps = root.dependencies;
-
-  if (deps !== null && typeof deps === "object" && !Array.isArray(deps)) {
-    const depsObj = deps as Record<string, unknown>;
-    if ("@opencode-ai/plugin" in depsObj) {
-      delete depsObj["@opencode-ai/plugin"];
-    }
-    if (Object.keys(depsObj).length === 0) {
-      delete root.dependencies;
-    } else {
-      root.dependencies = depsObj;
-    }
-  }
-
-  const fullyEmpty = Object.keys(root).length === 0;
-  return {
-    content: JSON.stringify(root, null, 2) + "\n",
-    fullyEmpty,
-  };
-}
-
-/**
  * Trellis-specific values written by the Pi configurator.
  *
  * The `extensions`/`skills`/`prompts` arrays are paths relative to `.pi/`. We

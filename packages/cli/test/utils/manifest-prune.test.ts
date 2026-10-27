@@ -36,7 +36,11 @@ describe("pruneOrphanManifestKeys", () => {
     };
     saveHashes(tmpDir, hashes);
 
-    const { pruned, hashes: kept } = pruneOrphanManifestKeys(tmpDir, [], hashes);
+    const { pruned, hashes: kept } = pruneOrphanManifestKeys(
+      tmpDir,
+      [],
+      hashes,
+    );
 
     expect(pruned).toEqual([]);
     expect(kept).toEqual(hashes);
@@ -80,6 +84,25 @@ describe("pruneOrphanManifestKeys", () => {
     expect(pruned).toEqual([".claude/sessions/user.jsonl"]);
     expect(kept).toHaveProperty(".claude/settings.json");
     expect(kept).not.toHaveProperty(".claude/sessions/user.jsonl");
+  });
+
+  it("keeps retired Trellis ownership while pruning poisoned neighbors", () => {
+    const hashes = {
+      ".opencode/package.json": "old-template-hash",
+      ".opencode/runtime-cache.db": "poisoned-user-hash",
+      ".claude/settings.json": "current-template-hash",
+    };
+    saveHashes(tmpDir, hashes);
+
+    const { pruned, hashes: kept } = pruneOrphanManifestKeys(
+      tmpDir,
+      ["claude-code"],
+      hashes,
+    );
+
+    expect(pruned).toEqual([".opencode/runtime-cache.db"]);
+    expect(kept[".opencode/package.json"]).toBe("old-template-hash");
+    expect(kept[".claude/settings.json"]).toBe("current-template-hash");
   });
 
   it("keeps root-level AGENTS.md when it has Trellis managed-block markers", () => {

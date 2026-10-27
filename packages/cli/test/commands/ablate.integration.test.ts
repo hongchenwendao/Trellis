@@ -27,7 +27,7 @@ import {
   getTransactionPaths,
   type PathFingerprint,
 } from "../../src/utils/ablation-store.js";
-import { loadHashes } from "../../src/utils/template-hash.js";
+import { loadHashes, saveHashes } from "../../src/utils/template-hash.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 const noop = () => {};
@@ -143,6 +143,26 @@ describe("ablate()/restore() integration", () => {
       false,
     );
     expect(inquirer.prompt).not.toHaveBeenCalled();
+  });
+
+  it("refuses retired ownership before opening a removal transaction", async () => {
+    await initialize();
+    const retiredFile = path.join(projectDir, ".opencode", "package.json");
+    fs.mkdirSync(path.dirname(retiredFile), { recursive: true });
+    fs.writeFileSync(retiredFile, "old OpenCode content\n");
+    const hashes = loadHashes(projectDir);
+    hashes[".opencode/package.json"] = "original-retired-hash";
+    saveHashes(projectDir, hashes);
+    const before = projectFingerprint();
+
+    await expect(ablate({ yes: true })).rejects.toThrow(
+      "tracked file(s) belong to retired platform adapters",
+    );
+
+    expect(projectFingerprint()).toEqual(before);
+    expect(fs.existsSync(getTransactionPaths(projectDir).transactionDir)).toBe(
+      false,
+    );
   });
 
   it("#3 cancel leaves both project and external state untouched", async () => {
